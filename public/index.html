@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이노맥스 챗봇</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        // 로컬 파일로 열었을 때 localhost로 리다이렉션
+        (function() {
+            // file:// 프로토콜로 열렸는지 확인
+            if (window.location.protocol === 'file:') {
+                // 사용자가 명시적으로 로컬에서 보기를 원하는지 확인
+                const stayLocal = localStorage.getItem('stayLocal');
+                
+                if (!stayLocal) {
+                    // 사용자에게 물어보기
+                    const redirectConfirm = confirm('로컬 파일로 열었습니다. 서버 환경(http://localhost:3000)으로 이동하시겠습니까?\n\n취소를 누르면 로컬 환경에서 제한된 기능으로 실행됩니다.');
+                    
+                    if (redirectConfirm) {
+                        // 확인을 누르면 localhost로 리다이렉션
+                        window.location.href = 'http://localhost:3000';
+                    } else {
+                        // 취소를 누르면 로컬에서 계속하고 다시 물어보지 않음
+                        localStorage.setItem('stayLocal', 'true');
+                    }
+                }
+            }
+        })();
+        
+        // 파일 이름 수정 (브라우저에서 직접 파일 열었을 때를 위한 처리)
+        document.addEventListener('DOMContentLoaded', function() {
+            // CSS 파일 경로 확인 및 수정
+            const cssLink = document.querySelector('link[rel="stylesheet"][href="styles.css"]');
+            if (cssLink && !cssFileExists(cssLink.href)) {
+                cssLink.href = 'style.css'; // styles.css가 없으면 style.css로 시도
+            }
+        });
+
+        // 파일 존재 여부 확인 (간단한 체크)
+        function cssFileExists(url) {
+            if (url.startsWith('file:///')) {
+                // 로컬 파일은 보안상 직접 확인할 수 없으므로 true 반환
+                return true;
+            }
+            
+            try {
+                const http = new XMLHttpRequest();
+                http.open('HEAD', url, false);
+                http.send();
+                return http.status != 404;
+            } catch (e) {
+                return true; // 오류 발생 시 true 반환 (보안 제한 때문에)
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="company-logo">
+                <h1>이노맥스 챗봇</h1>
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <!-- 메시지가 여기에 동적으로 추가됩니다 -->
+            <div class="message bot">
+                <div class="avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-bubble">
+                    <div class="message-content">안녕하세요! 이노맥스 챗봇입니다. 무엇을 도와드릴까요?</div>
+                    <div class="message-time">지금</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input">
+            <div class="category-selector">
+                <select id="categorySelector">
+                    <option value="general" selected>일반</option>
+                    <option value="finance">재무</option>
+                    <option value="equipment">장비</option>
+                </select>
+            </div>
+            <div class="input-container">
+                <input type="text" id="userInput" placeholder="메시지를 입력하세요...">
+                <button id="sendButton">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
