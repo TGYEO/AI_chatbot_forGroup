@@ -5,7 +5,7 @@ const sendButton = document.getElementById('sendButton');
 const categorySelector = document.getElementById('categorySelector');
 
 // API 엔드포인트
-const API_URL = '/api/chat';
+const API_URL = 'https://port-0-innomaxchatbot-m81gvozb3de7f8e0.sel4.cloudtype.app/api/chat';
 
 // 브라우저에서 직접 파일을 열었는지 확인
 const isLocalFile = window.location.protocol === 'file:';
