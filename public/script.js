@@ -39,9 +39,6 @@ async function handleUserMessage() {
     const message = userInput.value.trim();
     if (!message) return;
 
-    // 현재 선택된 카테고리 가져오기
-    const category = categorySelector.value;
-
     // 사용자 메시지 UI에 추가
     addMessageToUI('user', message);
     userInput.value = '';
@@ -54,26 +51,14 @@ async function handleUserMessage() {
         // 잠시 딜레이를 줘서 로딩 효과를 보여줌
         setTimeout(() => {
             const responses = {
-                general: {
-                    '안녕': '안녕하세요! 이노맥스 챗봇입니다. 무엇을 도와드릴까요?',
-                    '회사 소개': '이노맥스는 혁신적인 기술 솔루션을 제공하는 회사입니다. 최신 기술과 전문 지식을 바탕으로 고객에게 최상의 서비스를 제공하고 있습니다.',
-                    '도움말': '저는 이노맥스 챗봇입니다. 일반 정보, 재무 정보, 장비 정보 등에 대해 답변할 수 있습니다. 화면 위의 드롭다운 메뉴에서 카테고리를 선택하시면 더 전문적인 답변을 받으실 수 있습니다.'
-                },
-                finance: {
-                    '안녕': '안녕하세요! 이노맥스 재무 부문 챗봇입니다. 재무 관련 문의를 도와드리겠습니다.',
-                    '재무 현황': '이노맥스의 재무 상태는 안정적입니다. 자세한 재무 정보는 기밀 정보로 제공할 수 없습니다. 공개된 재무 정보는 회사 웹사이트의 투자자 정보 섹션에서 확인하실 수 있습니다.',
-                    '투자': '이노맥스는 R&D 및 신기술 개발에 지속적으로 투자하고 있습니다. 현재 주요 투자 분야는 자동화 기술과 지속 가능한 에너지 솔루션입니다.'
-                },
-                equipment: {
-                    '안녕': '안녕하세요! 이노맥스 장비 부문 챗봇입니다. 장비 관련 문의를 도와드리겠습니다.',
-                    '장비 목록': '이노맥스는 다양한 산업 자동화 장비와 생산 장비를 제공합니다. 주요 제품으로는 자동화 라인, 로봇 시스템, 정밀 측정 장비 등이 있습니다.',
-                    '유지보수': '이노맥스 장비는 정기적인 유지보수가 필요합니다. 일반적으로 3-6개월 주기로 전문가에 의한 점검을 권장합니다. 자세한 유지보수 일정은 제품 매뉴얼을 참조하십시오.'
-                }
+                '안녕': '안녕하세요! 이노맥스 챗봇입니다. 무엇을 도와드릴까요?',
+                '회사 소개': '이노맥스는 혁신적인 기술 솔루션을 제공하는 회사입니다. 최신 기술과 전문 지식을 바탕으로 고객에게 최상의 서비스를 제공하고 있습니다.',
+                '도움말': '저는 이노맥스 챗봇입니다. 일반 정보, 재무 정보, 장비 정보 등에 대해 답변할 수 있습니다.'
             };
 
             // 키워드 매칭 시도
             let foundResponse = null;
-            for (const [key, value] of Object.entries(responses[category] || responses.general)) {
+            for (const [key, value] of Object.entries(responses)) {
                 if (message.includes(key)) {
                     foundResponse = value;
                     break;
@@ -90,15 +75,14 @@ async function handleUserMessage() {
     }
 
     try {
-        // 백엔드 서버에 메시지와 카테고리 전송
+        // 백엔드 서버에 메시지 전송 (카테고리는 제거)
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ 
-                message,
-                category
+                message
             })
         });
 

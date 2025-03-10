@@ -117,30 +117,9 @@ body {
 
 .chat-input {
     display: flex;
-    flex-direction: column;
     padding: 15px;
     border-top: 1px solid #eaeaea;
     background-color: white;
-}
-
-.category-selector {
-    margin-bottom: 10px;
-}
-
-.category-selector select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    outline: none;
-    cursor: pointer;
-    background-color: #f7f7f7;
-    transition: border-color 0.2s;
-}
-
-.category-selector select:focus {
-    border-color: #3b82f6;
 }
 
 .input-container {
