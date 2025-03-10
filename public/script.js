@@ -5,7 +5,7 @@ const sendButton = document.getElementById('sendButton');
 const categorySelector = document.getElementById('categorySelector');
 
 // API 엔드포인트 (기본값)
-let API_URL = '/api/chat'; // 로컬 API 엔드포인트 (서버가 프록시 역할)
+let API_URL = 'https://port-0-innomaxchatbot-m81gvozb3de7f8e0.sel4.cloudtype.app/api/chat';
 
 // 설정 로드
 async function loadConfig() {
@@ -14,7 +14,7 @@ async function loadConfig() {
         if (response.ok) {
             const config = await response.json();
             console.log('서버 설정 로드됨:', config);
-            API_URL = config.apiUrl; // 외부 API에 직접 연결하고 싶다면 이 줄의 주석을 해제
+            //API_URL = config.apiUrl; // 외부 API에 직접 연결하고 싶다면 이 줄의 주석을 해제
         }
     } catch (error) {
         console.error('설정을 로드하는 중 오류 발생:', error);
