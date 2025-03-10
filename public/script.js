@@ -14,7 +14,7 @@ async function loadConfig() {
         if (response.ok) {
             const config = await response.json();
             console.log('서버 설정 로드됨:', config);
-            // API_URL = config.apiUrl; // 외부 API에 직접 연결하고 싶다면 이 줄의 주석을 해제
+            API_URL = config.apiUrl; // 외부 API에 직접 연결하고 싶다면 이 줄의 주석을 해제
         }
     } catch (error) {
         console.error('설정을 로드하는 중 오류 발생:', error);
