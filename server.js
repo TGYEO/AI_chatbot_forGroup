@@ -20,6 +20,14 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('public')); // 정적 파일 제공
 
+// 환경 변수 설정 엔드포인트 추가 - 클라이언트에게 제공할 설정 값
+app.get('/config', (req, res) => {
+  // 클라이언트에 필요한 환경 변수만 노출
+  res.json({
+    apiUrl: process.env.API_URL
+  });
+});
+
 // OpenAI 설정
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,

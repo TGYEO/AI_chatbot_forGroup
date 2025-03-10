@@ -4,8 +4,35 @@ const userInput = document.getElementById('userInput');
 const sendButton = document.getElementById('sendButton');
 const categorySelector = document.getElementById('categorySelector');
 
-// API 엔드포인트
-const API_URL = 'https://port-0-innomaxchatbot-m81gvozb3de7f8e0.sel4.cloudtype.app/api/chat';
+// API 엔드포인트 (기본값)
+let API_URL = '/api/chat'; // 로컬 API 엔드포인트 (서버가 프록시 역할)
+
+// 설정 로드
+async function loadConfig() {
+    try {
+        const response = await fetch('/config');
+        if (response.ok) {
+            const config = await response.json();
+            console.log('서버 설정 로드됨:', config);
+            // API_URL = config.apiUrl; // 외부 API에 직접 연결하고 싶다면 이 줄의 주석을 해제
+        }
+    } catch (error) {
+        console.error('설정을 로드하는 중 오류 발생:', error);
+    }
+}
+
+// 페이지 로드 시 설정 로드
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadConfig();
+    
+    // 이벤트 리스너 설정
+    sendButton.addEventListener('click', handleUserMessage);
+    userInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleUserMessage();
+        }
+    });
+});
 
 // 브라우저에서 직접 파일을 열었는지 확인
 const isLocalFile = window.location.protocol === 'file:';
@@ -23,16 +50,6 @@ function formatTime() {
     
     return `${ampm} ${hours}:${minutes}`;
 }
-
-// 이벤트 리스너 설정
-document.addEventListener('DOMContentLoaded', () => {
-    sendButton.addEventListener('click', handleUserMessage);
-    userInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            handleUserMessage();
-        }
-    });
-});
 
 // 사용자 메시지 처리
 async function handleUserMessage() {
@@ -75,7 +92,7 @@ async function handleUserMessage() {
     }
 
     try {
-        // 백엔드 서버에 메시지 전송 (카테고리는 제거)
+        // 백엔드 서버에 메시지 전송
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
