@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const { Pinecone } = require('@pinecone-database/pinecone');
-const { Configuration, OpenAIApi } = require('openai');
+const OpenAI = require('openai'); // 최신 OpenAI SDK로 변경
 
 // 환경 변수 설정
 dotenv.config();
@@ -13,7 +13,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 //공통데이터
-const OpenAI_API_Chat_Model = "o1-mini-2024-09-12";//gpt-3.5-turbo
+const OpenAI_API_Chat_Model = "o3-mini"; // o3-mini 모델로 변경
 const OpenAI_API_Embedding_Model = "text-embedding-3-small";
 
 // 미들웨어 설정
@@ -32,11 +32,10 @@ app.get('/config', (req, res) => {
   });
 });
 
-// OpenAI 설정
-const configuration = new Configuration({
+// OpenAI 설정 (최신 방식으로 변경)
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-const openai = new OpenAIApi(configuration);
 
 // Pinecone 클라이언트 초기화
 const pinecone = new Pinecone({
@@ -84,8 +83,8 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: '메시지를 입력해주세요' });
     }
 
-    // 1. 첫 번째 OpenAI 호출: 질문 프롬프트 개선
-    const promptEnhancerResponse = await openai.createChatCompletion({
+    // 1. 첫 번째 OpenAI 호출: 질문 프롬프트 개선 (최신 API 방식으로 변경)
+    const promptEnhancerResponse = await openai.chat.completions.create({
       model: OpenAI_API_Chat_Model,
       messages: [
         { role: 'system', content: promptEnhancerSystemPrompt },
@@ -95,16 +94,16 @@ app.post('/api/chat', async (req, res) => {
       max_tokens: 256,
     });
 
-    const enhancedPrompt = promptEnhancerResponse.data.choices[0].message.content;
+    const enhancedPrompt = promptEnhancerResponse.choices[0].message.content;
     console.log('개선된 프롬프트:', enhancedPrompt);
 
-    // 2. 임베딩 생성 (개선된 프롬프트 사용)
-    const embeddingResponse = await openai.createEmbedding({
+    // 2. 임베딩 생성 (개선된 프롬프트 사용) (최신 API 방식으로 변경)
+    const embeddingResponse = await openai.embeddings.create({
       model: OpenAI_API_Embedding_Model,
       input: enhancedPrompt,
     });
     
-    const embedding = embeddingResponse.data.data[0].embedding;
+    const embedding = embeddingResponse.data[0].embedding;
 
     // 3. Pinecone에서 관련 컨텍스트 검색
     const queryResponse = await pineconeIndex.query({
@@ -121,8 +120,8 @@ app.post('/api/chat', async (req, res) => {
         .join('\n\n');
     }
 
-    // 4. 두 번째 OpenAI 호출: 최종 응답 생성
-    const completion = await openai.createChatCompletion({
+    // 4. 두 번째 OpenAI 호출: 최종 응답 생성 (최신 API 방식으로 변경)
+    const completion = await openai.chat.completions.create({
       model: OpenAI_API_Chat_Model,
       messages: [
         { role: 'system', content: `${responseGeneratorSystemPrompt}\n\n컨텍스트:\n${context || '관련 정보가 없습니다만, 일반적인 지식을 바탕으로 답변하겠습니다.'}` },
@@ -132,7 +131,7 @@ app.post('/api/chat', async (req, res) => {
       max_tokens: 500,
     });
 
-    const botResponse = completion.data.choices[0].message.content;
+    const botResponse = completion.choices[0].message.content;
     
     // 응답 반환
     res.json({ response: botResponse });
