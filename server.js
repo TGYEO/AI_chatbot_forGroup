@@ -13,7 +13,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 //공통데이터
-const OpenAI_API_Chat_Model = "o3-mini"; // o3-mini 모델로 변경
+const OpenAI_API_Chat_Model = "gpt-4o-mini"; // o1-mini 모델로 변경
 const OpenAI_API_Embedding_Model = "text-embedding-3-small";
 
 // 미들웨어 설정
