@@ -12,6 +12,10 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
+//공통데이터
+const OpenAI_API_Chat_Model = "o1-mini-2024-09-12";//gpt-3.5-turbo
+const OpenAI_API_Embedding_Model = "text-embedding-3-small";
+
 // 미들웨어 설정
 app.use(cors({
   origin: ['https://tgyeo.github.io', 'http://localhost:3000'],
@@ -82,7 +86,7 @@ app.post('/api/chat', async (req, res) => {
 
     // 1. 첫 번째 OpenAI 호출: 질문 프롬프트 개선
     const promptEnhancerResponse = await openai.createChatCompletion({
-      model: 'gpt-3.5-turbo',
+      model: OpenAI_API_Chat_Model,
       messages: [
         { role: 'system', content: promptEnhancerSystemPrompt },
         { role: 'user', content: message }
@@ -96,7 +100,7 @@ app.post('/api/chat', async (req, res) => {
 
     // 2. 임베딩 생성 (개선된 프롬프트 사용)
     const embeddingResponse = await openai.createEmbedding({
-      model: 'text-embedding-3-small',
+      model: OpenAI_API_Embedding_Model,
       input: enhancedPrompt,
     });
     
@@ -119,7 +123,7 @@ app.post('/api/chat', async (req, res) => {
 
     // 4. 두 번째 OpenAI 호출: 최종 응답 생성
     const completion = await openai.createChatCompletion({
-      model: 'gpt-3.5-turbo',
+      model: OpenAI_API_Chat_Model,
       messages: [
         { role: 'system', content: `${responseGeneratorSystemPrompt}\n\n컨텍스트:\n${context || '관련 정보가 없습니다만, 일반적인 지식을 바탕으로 답변하겠습니다.'}` },
         { role: 'user', content: message } // 원래 사용자 질문 사용
