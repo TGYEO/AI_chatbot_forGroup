@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>태검 챗봇(개발중)</title>
+    <title>태검 챗봇</title>
     <link rel="stylesheet" href="public/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -32,9 +32,9 @@
         // 파일 이름 수정 (브라우저에서 직접 파일 열었을 때를 위한 처리)
         document.addEventListener('DOMContentLoaded', function() {
             // CSS 파일 경로 확인 및 수정
-            const cssLink = document.querySelector('link[rel="stylesheet"][href="styles.css"]');
+            const cssLink = document.querySelector('link[rel="stylesheet"][href="public/styles.css"]');
             if (cssLink && !cssFileExists(cssLink.href)) {
-                cssLink.href = 'style.css'; // styles.css가 없으면 style.css로 시도
+                cssLink.href = 'styles.css'; // public/styles.css가 없으면 styles.css로 시도
             }
         });
 
@@ -60,7 +60,11 @@
     <div class="chat-container">
         <div class="chat-header">
             <div class="company-logo">
-                <h1>태검 챗봇(개발중)</h1>
+                <h1>태검 챗봇</h1>
+            </div>
+            <div class="model-info">
+                <span class="model-badge">GPT-4o-mini</span>
+                <span class="model-tooltip">Powered by OpenAI</span>
             </div>
         </div>
         
@@ -71,8 +75,8 @@
                     <i class="fas fa-robot"></i>
                 </div>
                 <div class="message-bubble">
-                    <div class="message-content">안녕하세요! 여태검이 만든 챗봇입니다. 무엇을 도와드릴까요?</div>
-                    <div class="message-time">지금</div>
+                    <div class="message-content">안녕하세요! 태검 챗봇입니다. 무엇을 도와드릴까요?</div>
+                    <div class="message-time" id="initialMessageTime">지금</div>
                 </div>
             </div>
         </div>
@@ -83,6 +87,9 @@
                 <button id="sendButton">
                     <i class="fas fa-paper-plane"></i>
                 </button>
+            </div>
+            <div class="powered-by">
+                <span>Vector DB: Pinecone | Embedding: text-embedding-3-small</span>
             </div>
         </div>
     </div>
