@@ -1,11 +1,10 @@
-
 ```
-InnomaxChatbot
+AIChatBot_ForGroup
 ├─ .env
+├─ index.html
 ├─ package-lock.json
 ├─ package.json
 ├─ public
-│  ├─ index.html
 │  ├─ script.js
 │  └─ styles.css
 ├─ README.md
