@@ -24,6 +24,99 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('public')); // 정적 파일 제공
 
+// 루트 경로 핸들러 추가
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AI 챗봇 서버</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+                line-height: 1.6;
+            }
+            h1 {
+                color: #333;
+            }
+            .info {
+                background-color: #f4f4f4;
+                padding: 15px;
+                border-radius: 5px;
+                margin-bottom: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>AI 챗봇 서버</h1>
+        <div class="info">
+            <p>이 서버는 이노맥스 AI 챗봇의 백엔드 서버입니다.</p>
+            <p>프론트엔드는 <a href="https://tgyeo.github.io/AI_chatbot_forGroup/" target="_blank">여기</a>에서 접근할 수 있습니다.</p>
+        </div>
+        <h2>API 엔드포인트</h2>
+        <ul>
+            <li><code>/api/chat</code> - 채팅 API (POST 요청)</li>
+            <li><code>/health</code> - 서버 상태 확인 (GET 요청)</li>
+            <li><code>/ping</code> - 간단한 연결 테스트 (GET 요청)</li>
+        </ul>
+    </body>
+    </html>
+  `);
+});
+
+// 건강 체크 엔드포인트 추가
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    message: '서버가 정상 작동 중입니다',
+    openai: !!process.env.OPENAI_API_KEY,
+    pinecone: !!process.env.PINECONE_API_KEY
+  });
+});
+
+// 간단한 핑 테스트 엔드포인트 추가
+app.get('/ping', (req, res) => {
+  res.status(200).send('pong');
+});
+
+// 프로토타입 모드 엔드포인트 (API 장애 시 폴백 기능)
+app.post('/api/chat-prototype', (req, res) => {
+  try {
+    const { message } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({ error: '메시지를 입력해주세요' });
+    }
+    
+    // 간단한 키워드 기반 응답 생성
+    const responses = {
+      '안녕': '안녕하세요! 이노맥스 챗봇입니다. 무엇을 도와드릴까요?',
+      '회사': '이노맥스는 혁신적인 기술 솔루션을 제공하는 회사입니다. 최신 기술과 전문 지식을 바탕으로 고객에게 최상의 서비스를 제공하고 있습니다.',
+      '도움말': '저는 이노맥스 챗봇입니다. 일반 정보, 재무 정보, 장비 정보 등에 대해 답변할 수 있습니다.',
+      '모델': `현재 이 챗봇은 OpenAI의 ${OpenAI_API_Chat_Model} 모델을 사용하며, 벡터 임베딩은 ${OpenAI_API_Embedding_Model} 모델을 사용합니다.`
+    };
+
+    // 키워드 매칭
+    let response = '죄송합니다. 해당 질문에 대한 정보가 없습니다.';
+    for (const [key, value] of Object.entries(responses)) {
+      if (message.toLowerCase().includes(key)) {
+        response = value;
+        break;
+      }
+    }
+    
+    res.json({ response });
+  } catch (error) {
+    console.error('프로토타입 모드 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
 // 환경 변수 설정 엔드포인트 추가 - 클라이언트에게 제공할 설정 값
 app.get('/config', (req, res) => {
   // 클라이언트에 필요한 환경 변수만 노출
@@ -83,6 +176,15 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: '메시지를 입력해주세요' });
     }
 
+    // API 키 확인
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ error: 'OpenAI API 키가 설정되지 않았습니다' });
+    }
+
+    if (!process.env.PINECONE_API_KEY) {
+      return res.status(500).json({ error: 'Pinecone API 키가 설정되지 않았습니다' });
+    }
+
     // 1. 첫 번째 OpenAI 호출: 질문 프롬프트 개선 (최신 API 방식으로 변경)
     const promptEnhancerResponse = await openai.chat.completions.create({
       model: OpenAI_API_Chat_Model,
@@ -138,6 +240,25 @@ app.post('/api/chat', async (req, res) => {
 
   } catch (error) {
     console.error('오류 발생:', error);
+    
+    // OpenAI API 오류 처리
+    if (error.response && error.response.status) {
+      console.error('OpenAI API 오류:', error.response.status, error.response.data);
+      return res.status(error.response.status).json({
+        error: 'OpenAI API 오류',
+        details: error.response.data
+      });
+    }
+    
+    // Pinecone API 오류 처리
+    if (error.name === 'PineconeError') {
+      console.error('Pinecone API 오류:', error.message);
+      return res.status(500).json({
+        error: 'Pinecone API 오류',
+        details: error.message
+      });
+    }
+    
     res.status(500).json({ 
       error: '서버 오류가 발생했습니다', 
       details: error.message 
@@ -145,7 +266,28 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+// 예기치 않은 오류 처리
+process.on('uncaughtException', (error) => {
+  console.error('예기치 않은 오류:', error);
+  // 심각한 오류이지만 서버는 계속 실행
+});
+
+// 비동기 오류 처리
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('처리되지 않은 프로미스 거부:', reason);
+  // 심각한 오류이지만 서버는 계속 실행
+});
+
 // 서버 시작
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`서버가 포트 ${port}에서 실행 중입니다`);
+});
+
+// 우아한 종료 처리
+process.on('SIGTERM', () => {
+  console.log('SIGTERM 신호 받음. 서버를 종료합니다...');
+  server.close(() => {
+    console.log('서버가 종료되었습니다.');
+    process.exit(0);
+  });
 });
