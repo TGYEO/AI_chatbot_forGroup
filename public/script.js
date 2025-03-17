@@ -6,9 +6,9 @@ const modelBadge = document.querySelector('.model-badge');
 const modelTooltip = document.querySelector('.model-tooltip');
 
 // API 엔드포인트 (기본값)
-let API_URL = 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api';
+let API_URL = '/api/chat';
 
-// AI 모델 정보
+// AI 모델 정보 - 서버와 일치하도록 설정
 const AI_MODEL_INFO = {
     chat: 'gpt-4o-mini',
     embedding: 'text-embedding-3-small'
@@ -16,15 +16,29 @@ const AI_MODEL_INFO = {
 
 // 설정 로드
 async function loadConfig() {
+    // 브라우저에서 직접 파일을 열었는지 확인
+    const isLocalFile = window.location.protocol === 'file:';
+    
+    if (isLocalFile) {
+        console.log('로컬 파일에서 실행 중입니다. 기본 설정을 사용합니다.');
+        return; // 로컬 파일에서 실행 중이면 fetch 요청을 건너뜀
+    }
+    
     try {
-        const response = await fetch();
+        // 서버에서 제공하는 설정 엔드포인트에 맞춰 경로 수정
+        const response = await fetch('/config');
         if (response.ok) {
             const config = await response.json();
             console.log('서버 설정 로드됨:', config);
-            //API_URL = config.apiUrl; // 외부 API에 직접 연결하고 싶다면 이 줄의 주석을 해제
+            if (config.apiUrl) {
+                API_URL = config.apiUrl;
+                console.log('API URL 업데이트됨:', API_URL);
+            }
         }
     } catch (error) {
         console.error('설정을 로드하는 중 오류 발생:', error);
+        // 오류가 발생해도 애플리케이션은 계속 실행 (기본 API_URL 사용)
+        console.log('기본 API URL 사용:', API_URL);
     }
 }
 
