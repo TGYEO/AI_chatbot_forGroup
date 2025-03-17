@@ -5,8 +5,13 @@ const sendButton = document.getElementById('sendButton');
 const modelBadge = document.querySelector('.model-badge');
 const modelTooltip = document.querySelector('.model-tooltip');
 
-// API 엔드포인트 (기본값)
-let API_URL = '/api/chat';
+// GitHub Pages에서 배포된 환경과 로컬 또는 CloudType 환경을 구분
+const isGitHubPages = window.location.hostname.includes('github.io');
+
+// API 엔드포인트 설정 - GitHub Pages와 다른 환경에 맞게 조정
+let API_URL = isGitHubPages 
+    ? 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api/chat' 
+    : '/api/chat';
 
 // AI 모델 정보 - 서버와 일치하도록 설정
 const AI_MODEL_INFO = {
@@ -14,18 +19,18 @@ const AI_MODEL_INFO = {
     embedding: 'text-embedding-3-small'
 };
 
-// 설정 로드
+// 설정 로드 함수 수정
 async function loadConfig() {
     // 브라우저에서 직접 파일을 열었는지 확인
     const isLocalFile = window.location.protocol === 'file:';
     
-    if (isLocalFile) {
-        console.log('로컬 파일에서 실행 중입니다. 기본 설정을 사용합니다.');
-        return; // 로컬 파일에서 실행 중이면 fetch 요청을 건너뜀
+    if (isLocalFile || isGitHubPages) {
+        console.log('로컬 파일 또는 GitHub Pages에서 실행 중입니다. 기본 설정을 사용합니다.');
+        return; // 로컬 파일이나 GitHub Pages에서 실행 중이면 fetch 요청을 건너뜀
     }
     
     try {
-        // 서버에서 제공하는 설정 엔드포인트에 맞춰 경로 수정
+        // 서버에서 제공하는 설정 엔드포인트에 맞춰 경로 수정 (CloudType 환경에서만 실행)
         const response = await fetch('/config');
         if (response.ok) {
             const config = await response.json();
@@ -44,23 +49,29 @@ async function loadConfig() {
 
 // 페이지 로드 시 설정 로드
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadConfig();
-    
-    // AI 모델 정보 표시
-    if (modelBadge) {
-        modelBadge.textContent = AI_MODEL_INFO.chat;
-    }
-    
-    // 이벤트 리스너 설정
-    sendButton.addEventListener('click', handleUserMessage);
-    userInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            handleUserMessage();
+    try {
+        await loadConfig();
+        
+        // AI 모델 정보 표시
+        if (modelBadge) {
+            modelBadge.textContent = AI_MODEL_INFO.chat;
         }
-    });
-    
-    // 초기 메시지 시간 업데이트
-    updateInitialMessageTime();
+        
+        // 이벤트 리스너 설정
+        sendButton.addEventListener('click', handleUserMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleUserMessage();
+            }
+        });
+        
+        // 초기 메시지 시간 업데이트
+        updateInitialMessageTime();
+        
+        console.log('초기화 완료, API URL:', API_URL);
+    } catch (error) {
+        console.error('초기화 중 오류 발생:', error);
+    }
 });
 
 // 초기 메시지 시간 업데이트
@@ -150,7 +161,7 @@ async function handleUserMessage() {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
+            const errorData = await response.json().catch(() => ({ error: '서버 응답 오류' }));
             throw new Error(errorData.error || '서버 오류가 발생했습니다');
         }
 
