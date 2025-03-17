@@ -54,13 +54,34 @@
                 return true; // 오류 발생 시 true 반환 (보안 제한 때문에)
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // CSS 파일 경로 확인 및 수정
+            const cssLink = document.querySelector('link[rel="stylesheet"][href="public/styles.css"]');
+            if (cssLink && !cssFileExists(cssLink.href)) {
+                cssLink.href = 'styles.css'; // public/styles.css가 없으면 styles.css로 시도
+            }
+            
+            // 로고 이미지 경로 확인 및 수정
+            const logoImg = document.getElementById('companyLogo');
+            if (logoImg) {
+                // 이미지 로드 실패 시 경로 변경 처리
+                logoImg.onerror = function() {
+                    // GitHub Pages에서의 경로로 시도
+                    if (logoImg.src.includes('public/')) {
+                        logoImg.src = logoImg.src.replace('public/', '');
+                    }
+                };
+            }
+        });
     </script>
 </head>
 <body>
     <div class="chat-container">
         <div class="chat-header">
             <div class="company-logo">
-                <h1>태검 챗봇</h1>
+                <img src="public/images/company-logo.png" alt="태검 로고" id="companyLogo">
+                <h1>이노맥스 챗봇</h1>
             </div>
             <div class="model-info">
                 <span class="model-badge">GPT-4o-mini</span>
@@ -75,7 +96,7 @@
                     <i class="fas fa-robot"></i>
                 </div>
                 <div class="message-bubble">
-                    <div class="message-content">안녕하세요! 태검 챗봇입니다. 무엇을 도와드릴까요?</div>
+                    <div class="message-content">안녕하세요! 이노맥스 챗봇입니다. 무엇을 도와드릴까요?</div>
                     <div class="message-time" id="initialMessageTime">지금</div>
                 </div>
             </div>

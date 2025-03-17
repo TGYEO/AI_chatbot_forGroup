@@ -19,6 +19,27 @@ const AI_MODEL_INFO = {
     embedding: 'text-embedding-3-small'
 };
 
+
+// 서비스 환경에 따른 이미지 경로 설정 (여기에 추가)
+function adjustImagePaths() {
+    const logoImg = document.getElementById('companyLogo');
+    if (!logoImg) return;
+    
+    // GitHub Pages 도메인인 경우 경로 조정
+    if (isGitHubPages) {
+        // GitHub Pages에서의 이미지 경로
+        if (!logoImg.src.includes('/AI_chatbot_forGroup/')) {
+            logoImg.src = '/AI_chatbot_forGroup/public/images/company-logo.png';
+        }
+    } else if (window.location.hostname.includes('cloudtype.app')) {
+        // CloudType에서의 이미지 경로
+        logoImg.src = '/public/images/company-logo.png';
+    } else if (window.location.protocol === 'file:') {
+        // 로컬 파일일 경우 상대 경로 사용
+        logoImg.src = 'public/images/company-logo.png';
+    }
+}
+
 // 설정 로드 함수 수정
 async function loadConfig() {
     // 브라우저에서 직접 파일을 열었는지 확인
@@ -56,6 +77,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (modelBadge) {
             modelBadge.textContent = AI_MODEL_INFO.chat;
         }
+        
+        // 이미지 경로 조정 함수 호출 (여기에 추가)
+        adjustImagePaths();
         
         // 이벤트 리스너 설정
         sendButton.addEventListener('click', handleUserMessage);
