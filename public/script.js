@@ -17,7 +17,7 @@ const AI_MODEL_INFO = {
 // 설정 로드
 async function loadConfig() {
     try {
-        const response = await fetch('/config');
+        const response = await fetch();
         if (response.ok) {
             const config = await response.json();
             console.log('서버 설정 로드됨:', config);
