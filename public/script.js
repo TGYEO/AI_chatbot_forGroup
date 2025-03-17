@@ -6,7 +6,7 @@ const modelBadge = document.querySelector('.model-badge');
 const modelTooltip = document.querySelector('.model-tooltip');
 
 // API 엔드포인트 (기본값)
-let API_URL = 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api/chat';
+let API_URL = 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api';
 
 // AI 모델 정보
 const AI_MODEL_INFO = {
