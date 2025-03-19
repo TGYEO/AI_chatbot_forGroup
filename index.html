@@ -3,10 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>태검 챗봇</title>
+    <title>INNOMAX AI HELPER</title>
     <link rel="stylesheet" href="public/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 추가된 스타일 */
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+        }
+        
+        .user-badge {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .logout-btn {
+            background-color: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background-color 0.2s;
+        }
+        
+        .logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+        
+        .language-selector {
+            margin-left: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .language-selector select {
+            background-color: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+        }
+        
+        .language-selector select:focus {
+            outline: none;
+        }
+    </style>
     <script>
+        // 로그인 확인 함수
+        function checkLogin() {
+            const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+            
+            if (!userData.loggedIn) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            
+            return userData;
+        }
+        
         // 로컬 파일로 열었을 때 localhost로 리다이렉션
         (function() {
             // file:// 프로토콜로 열렸는지 확인
@@ -31,11 +95,37 @@
         
         // 파일 이름 수정 (브라우저에서 직접 파일 열었을 때를 위한 처리)
         document.addEventListener('DOMContentLoaded', function() {
+            // 로그인 확인
+            const userData = checkLogin();
+            if (!userData) return;
+            
+            // 언어 설정 로드
+            const savedLanguage = localStorage.getItem('preferredLanguage') || 'ko';
+            document.getElementById('language').value = savedLanguage;
+            
+            // 언어 적용
+            applyLanguage(savedLanguage);
+            
+            // 사용자 정보 표시
+            displayUserInfo(userData);
+            
             // CSS 파일 경로 확인 및 수정
             const cssLink = document.querySelector('link[rel="stylesheet"][href="public/styles.css"]');
             if (cssLink && !cssFileExists(cssLink.href)) {
                 cssLink.href = 'styles.css'; // public/styles.css가 없으면 styles.css로 시도
             }
+            
+            // 이벤트 리스너 등록
+            document.getElementById('language').addEventListener('change', function() {
+                const selectedLanguage = this.value;
+                localStorage.setItem('preferredLanguage', selectedLanguage);
+                location.reload(); // 페이지 새로고침
+            });
+            
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                localStorage.removeItem('userData');
+                window.location.href = 'login.html';
+            });
         });
 
         // 파일 존재 여부 확인 (간단한 체크)
@@ -54,38 +144,195 @@
                 return true; // 오류 발생 시 true 반환 (보안 제한 때문에)
             }
         }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // CSS 파일 경로 확인 및 수정
-            const cssLink = document.querySelector('link[rel="stylesheet"][href="public/styles.css"]');
-            if (cssLink && !cssFileExists(cssLink.href)) {
-                cssLink.href = 'styles.css'; // public/styles.css가 없으면 styles.css로 시도
+        
+        // 사용자 정보 표시 함수
+        function displayUserInfo(userData) {
+            const userTypeEl = document.getElementById('userType');
+            const usernameEl = document.getElementById('username');
+            
+            if (userData.userType === 'innomax') {
+                userTypeEl.textContent = getTranslation('innomaxStaff');
+            } else {
+                userTypeEl.textContent = getTranslation('customerStaff');
             }
             
-            // 로고 이미지 경로 확인 및 수정
-            const logoImg = document.getElementById('companyLogo');
-            if (logoImg) {
-                // 이미지 로드 실패 시 경로 변경 처리
-                logoImg.onerror = function() {
-                    // GitHub Pages에서의 경로로 시도
-                    if (logoImg.src.includes('public/')) {
-                        logoImg.src = logoImg.src.replace('public/', '');
-                    }
-                };
+            usernameEl.textContent = userData.username;
+        }
+        
+        // 언어 적용 함수
+        function applyLanguage(lang) {
+            // 모든 번역 가능한 요소 업데이트
+            const elements = document.querySelectorAll('[data-translate]');
+            elements.forEach(el => {
+                const key = el.dataset.translate;
+                el.textContent = getTranslation(key, lang);
+            });
+            
+            // 특정 드롭다운 메뉴 옵션 변경
+            updateSelectOptions(lang);
+        }
+        
+        // 번역 텍스트 가져오기
+        function getTranslation(key, lang) {
+            lang = lang || localStorage.getItem('preferredLanguage') || 'ko';
+            
+            const translations = {
+                'ko': {
+                    'aiHelper': 'AI HELPER',
+                    'logout': '로그아웃',
+                    'innomaxStaff': '이노맥스 직원',
+                    'customerStaff': '고객사 직원',
+                    'questionType': '질문유형',
+                    'selectQuestionType': '질문유형 선택',
+                    'problemSolving': '문제 해결',
+                    'dataSearch': '자료 검색',
+                    'equipmentType': '장비군',
+                    'selectEquipment': '장비군 선택',
+                    'customerName': '고객사',
+                    'selectCustomer': '고객사 선택',
+                    'enterMessage': '메시지를 입력하세요...',
+                    'welcomeMessage': '안녕하세요! 이노맥스 챗봇입니다. 무엇을 도와드릴까요? 장비군과 고객사를 선택하시면 더 정확한 답변을 드릴 수 있습니다.',
+                    'poweredBy': 'Vector DB: Pinecone | Embedding: text-embedding-3-small | Model: GPT-4o-mini'
+                },
+                'en': {
+                    'aiHelper': 'AI HELPER',
+                    'logout': 'Logout',
+                    'innomaxStaff': 'Innomax Staff',
+                    'customerStaff': 'Customer Staff',
+                    'questionType': 'Question Type',
+                    'selectQuestionType': 'Select Question Type',
+                    'problemSolving': 'Problem Solving',
+                    'dataSearch': 'Data Search',
+                    'equipmentType': 'Equipment Type',
+                    'selectEquipment': 'Select Equipment',
+                    'customerName': 'Customer',
+                    'selectCustomer': 'Select Customer',
+                    'enterMessage': 'Enter your message...',
+                    'welcomeMessage': 'Hello! I am Innomax chatbot. How can I help you? Select equipment type and customer for more accurate answers.',
+                    'poweredBy': 'Vector DB: Pinecone | Embedding: text-embedding-3-small | Model: GPT-4o-mini'
+                },
+                'ja': {
+                    'aiHelper': 'AI HELPER',
+                    'logout': 'ログアウト',
+                    'innomaxStaff': 'INNOMAXスタッフ',
+                    'customerStaff': 'お客様スタッフ',
+                    'questionType': '質問タイプ',
+                    'selectQuestionType': '質問タイプを選択',
+                    'problemSolving': '問題解決',
+                    'dataSearch': 'データ検索',
+                    'equipmentType': '装置タイプ',
+                    'selectEquipment': '装置を選択',
+                    'customerName': '顧客',
+                    'selectCustomer': '顧客を選択',
+                    'enterMessage': 'メッセージを入力...',
+                    'welcomeMessage': 'こんにちは！INNOMAXチャットボットです。どのようにお手伝いできますか？装置タイプと顧客を選択すると、より正確な回答ができます。',
+                    'poweredBy': 'Vector DB: Pinecone | Embedding: text-embedding-3-small | Model: GPT-4o-mini'
+                },
+                'zh': {
+                    'aiHelper': 'AI HELPER',
+                    'logout': '登出',
+                    'innomaxStaff': 'INNOMAX员工',
+                    'customerStaff': '客户员工',
+                    'questionType': '问题类型',
+                    'selectQuestionType': '选择问题类型',
+                    'problemSolving': '问题解决',
+                    'dataSearch': '资料搜索',
+                    'equipmentType': '设备类型',
+                    'selectEquipment': '选择设备',
+                    'customerName': '客户',
+                    'selectCustomer': '选择客户',
+                    'enterMessage': '输入您的消息...',
+                    'welcomeMessage': '您好！我是INNOMAX聊天机器人。我能为您做什么？选择设备类型和客户可以获得更准确的答案。',
+                    'poweredBy': 'Vector DB: Pinecone | Embedding: text-embedding-3-small | Model: GPT-4o-mini'
+                }
+            };
+            
+            return translations[lang][key] || key;
+        }
+        
+        // 셀렉트 옵션 업데이트
+        function updateSelectOptions(lang) {
+            // 질문 유형 셀렉트 업데이트
+            const questionSelect = document.getElementById('QuestionType');
+            if (questionSelect) {
+                questionSelect.options[0].text = getTranslation('selectQuestionType', lang);
+                questionSelect.options[1].text = getTranslation('problemSolving', lang);
+                questionSelect.options[2].text = getTranslation('dataSearch', lang);
             }
-        });
+            
+            // 장비군 셀렉트 업데이트
+            const equipmentSelect = document.getElementById('equipmentType');
+            if (equipmentSelect) {
+                equipmentSelect.options[0].text = getTranslation('selectEquipment', lang);
+                // 장비 이름은 번역하지 않음
+            }
+            
+            // 고객사 셀렉트 업데이트
+            const customerSelect = document.getElementById('customerName');
+            if (customerSelect) {
+                customerSelect.options[0].text = getTranslation('selectCustomer', lang);
+                // 고객사 이름은 번역하지 않음
+            }
+        }
     </script>
 </head>
 <body>
     <div class="chat-container">
         <div class="chat-header">
             <div class="company-logo">
-                <img src="public/images/company-logo.png" alt="태검 로고" id="companyLogo">
-                <h1>이노맥스 챗봇</h1>
+                <img src="public/images/company-logo.png" alt="이노맥스 로고" id="companyLogo">
+                <h1 data-translate="aiHelper">AI HELPER</h1>
             </div>
-            <div class="model-info">
-                <span class="model-badge">GPT-4o-mini</span>
-                <span class="model-tooltip">Powered by OpenAI</span>
+            
+            <div class="user-info">
+                <div>
+                    <span class="user-badge" id="userType">이노맥스 직원</span>
+                    <span id="username">사용자</span>
+                </div>
+                <button class="logout-btn" id="logoutBtn" data-translate="logout">로그아웃</button>
+                <div class="language-selector">
+                    <select id="language">
+                        <option value="en">English</option>
+                        <option value="ko" selected>한국어</option>
+                        <option value="ja">日本語</option>
+                        <option value="zh">中文</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 필터 선택 섹션 -->
+        <div class="filter-section">
+            <div class="filter-container">
+                <div class="filter-group">
+                    <label for="QuestionType" data-translate="questionType">질문유형</label>
+                    <select id="QuestionType" class="filter-dropdown">
+                        <option value="" disabled selected data-translate="selectQuestionType">질문유형 선택</option>
+                        <option value="PROBLEM" data-translate="problemSolving">문제 해결</option>
+                        <option value="SEARCH" data-translate="dataSearch">자료 검색</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="equipmentType" data-translate="equipmentType">장비군</label>
+                    <select id="equipmentType" class="filter-dropdown">
+                        <option value="" disabled selected data-translate="selectEquipment">장비군 선택</option>
+                        <option value="ASTRO">ASTRO (SPIN)</option>
+                        <option value="TRAUM">TRAUM (BATH)</option>
+                        <option value="THETIS">THETIS (CASSETTE CLEANER)</option>
+                        <option value="IMD_DRYER">IMD DRYER</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="customerName" data-translate="customerName">고객사</label>
+                    <select id="customerName" class="filter-dropdown">
+                        <option value="" disabled selected data-translate="selectCustomer">고객사 선택</option>
+                        <option value="ON-SEMI">ON-SEMI</option>
+                        <option value="NEPES">NEPES</option>
+                        <option value="DB하이텍">DB하이텍</option>
+                        <option value="SK실트론">SK실트론</option>
+                        <option value="삼성종기원">삼성종기원</option>
+                    </select>
+                </div>
             </div>
         </div>
         
@@ -96,8 +343,12 @@
                     <i class="fas fa-robot"></i>
                 </div>
                 <div class="message-bubble">
-                    <div class="message-content">안녕하세요! 이노맥스 챗봇입니다. 무엇을 도와드릴까요?</div>
-                    <div class="message-time" id="initialMessageTime">지금</div>
+                    <div class="message-content" id="welcomeMsg" data-translate="welcomeMessage">
+                        안녕하세요! 이노맥스 챗봇입니다. 무엇을 도와드릴까요? 장비군과 고객사를 선택하시면 더 정확한 답변을 드릴 수 있습니다.
+                    </div>
+                    <div class="message-time" id="initialMessageTime">지금
+
+                    </div>
                 </div>
             </div>
         </div>
@@ -110,7 +361,7 @@
                 </button>
             </div>
             <div class="powered-by">
-                <span>Vector DB: Pinecone | Embedding: text-embedding-3-small</span>
+                <span>Vector DB: Pinecone | Embedding: text-embedding-3-small | Model: GPT-4o-mini</span>
             </div>
         </div>
     </div>

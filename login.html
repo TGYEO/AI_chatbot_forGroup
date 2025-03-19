@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INNOMAX AI HELPER - 로그인</title>
+    <link rel="stylesheet" href="public/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .login-container {
+            width: 100%;
+            max-width: 450px;
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            margin: 0 auto;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-header img {
+            height: 60px;
+            margin-bottom: 15px;
+        }
+
+        .login-header h1 {
+            font-size: 1.8rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input, .form-group select {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3a6cd1;
+            box-shadow: 0 0 0 3px rgba(58, 108, 209, 0.1);
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, #3a6cd1, #234c9a);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+
+        .login-btn:hover {
+            background: linear-gradient(135deg, #2a5cc1, #1a408a);
+        }
+
+        .language-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: white;
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .language-selector label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .language-selector select {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background-color: white;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="language-selector">
+        <label for="language" id="languageLabel">언어:</label>
+        <select id="language">
+            <option value="en">English</option>
+            <option value="ko" selected>한국어</option>
+            <option value="ja">日本語</option>
+            <option value="zh">中文</option>
+        </select>
+    </div>
+
+    <div class="login-container">
+        <div class="login-header">
+            <img src="public/images/company-logo.png" alt="이노맥스 로고" id="companyLogo">
+            <h1 id="loginTitle">AI HELPER 로그인</h1>
+        </div>
+
+        <form class="login-form" id="loginForm">
+            <div class="form-group">
+                <label for="userType" id="userTypeLabel">사용자 유형</label>
+                <select id="userType" required>
+                    <option value="" disabled selected>선택하세요</option>
+                    <option value="innomax">이노맥스 직원</option>
+                    <option value="customer">고객사 직원</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="username" id="usernameLabel">아이디</label>
+                <input type="text" id="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password" id="passwordLabel">비밀번호</label>
+                <input type="password" id="password" required>
+                <div class="error-message" id="loginError"></div>
+            </div>
+            
+            <button type="submit" class="login-btn" id="loginButton">로그인</button>
+        </form>
+    </div>
+
+    <script>
+        // 초기 언어 설정 로드
+        document.addEventListener('DOMContentLoaded', function() {
+            // 이미지 경로 조정
+            adjustImagePaths();
+            
+            // 저장된 언어 설정 로드
+            const savedLanguage = localStorage.getItem('preferredLanguage') || 'ko';
+            document.getElementById('language').value = savedLanguage;
+            
+            // 언어 적용
+            applyLanguage(savedLanguage);
+            
+            // 이벤트 리스너 등록
+            document.getElementById('language').addEventListener('change', function() {
+                const selectedLanguage = this.value;
+                localStorage.setItem('preferredLanguage', selectedLanguage);
+                applyLanguage(selectedLanguage);
+            });
+            
+            // 로그인 폼 제출 처리
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                handleLogin();
+            });
+        });
+        
+        // 이미지 경로 조정 함수
+        function adjustImagePaths() {
+            const logoImg = document.getElementById('companyLogo');
+            if (!logoImg) return;
+            
+            // GitHub Pages 도메인인 경우 경로 조정
+            if (window.location.hostname.includes('github.io')) {
+                if (!logoImg.src.includes('/AI_chatbot_forGroup/')) {
+                    logoImg.src = '/AI_chatbot_forGroup/public/images/company-logo.png';
+                }
+            } else if (window.location.hostname.includes('cloudtype.app')) {
+                logoImg.src = '/public/images/company-logo.png';
+            } else if (window.location.protocol === 'file:') {
+                logoImg.src = 'public/images/company-logo.png';
+            }
+        }
+        
+        // 언어 적용 함수
+        function applyLanguage(lang) {
+            const translations = {
+                'ko': {
+                    'languageLabel': '언어:',
+                    'loginTitle': 'AI HELPER 로그인',
+                    'userTypeLabel': '사용자 유형',
+                    'usernameLabel': '아이디',
+                    'passwordLabel': '비밀번호',
+                    'loginButton': '로그인',
+                    'selectOption': '선택하세요',
+                    'innomaxStaff': '이노맥스 직원',
+                    'customerStaff': '고객사 직원',
+                    'loginError': '아이디 또는 비밀번호가 올바르지 않습니다.'
+                },
+                'en': {
+                    'languageLabel': 'Language:',
+                    'loginTitle': 'AI HELPER Login',
+                    'userTypeLabel': 'User Type',
+                    'usernameLabel': 'Username',
+                    'passwordLabel': 'Password',
+                    'loginButton': 'Login',
+                    'selectOption': 'Select',
+                    'innomaxStaff': 'Innomax Staff',
+                    'customerStaff': 'Customer Staff',
+                    'loginError': 'Invalid username or password.'
+                },
+                'ja': {
+                    'languageLabel': '言語:',
+                    'loginTitle': 'AI HELPERログイン',
+                    'userTypeLabel': 'ユーザータイプ',
+                    'usernameLabel': 'ユーザー名',
+                    'passwordLabel': 'パスワード',
+                    'loginButton': 'ログイン',
+                    'selectOption': '選択してください',
+                    'innomaxStaff': 'INNOMAXスタッフ',
+                    'customerStaff': 'お客様スタッフ',
+                    'loginError': 'ユーザー名またはパスワードが無効です。'
+                },
+                'zh': {
+                    'languageLabel': '语言:',
+                    'loginTitle': 'AI HELPER 登录',
+                    'userTypeLabel': '用户类型',
+                    'usernameLabel': '用户名',
+                    'passwordLabel': '密码',
+                    'loginButton': '登录',
+                    'selectOption': '请选择',
+                    'innomaxStaff': 'INNOMAX员工',
+                    'customerStaff': '客户员工',
+                    'loginError': '用户名或密码无效。'
+                }
+            };
+            
+            // 텍스트 변경
+            document.getElementById('languageLabel').textContent = translations[lang].languageLabel;
+            document.getElementById('loginTitle').textContent = translations[lang].loginTitle;
+            document.getElementById('userTypeLabel').textContent = translations[lang].userTypeLabel;
+            document.getElementById('usernameLabel').textContent = translations[lang].usernameLabel;
+            document.getElementById('passwordLabel').textContent = translations[lang].passwordLabel;
+            document.getElementById('loginButton').textContent = translations[lang].loginButton;
+            
+            // select 옵션 변경
+            const userTypeSelect = document.getElementById('userType');
+            userTypeSelect.options[0].text = translations[lang].selectOption;
+            userTypeSelect.options[1].text = translations[lang].innomaxStaff;
+            userTypeSelect.options[2].text = translations[lang].customerStaff;
+            
+            // 에러 메시지
+            const loginError = document.getElementById('loginError');
+            loginError.dataset.message = translations[lang].loginError;
+        }
+        
+        // 로그인 처리 함수
+        function handleLogin() {
+            const userType = document.getElementById('userType').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginError = document.getElementById('loginError');
+            
+            // 로그인 크리덴셜 확인
+            let isValid = false;
+            let userRole = '';
+            
+            if (userType === 'innomax' && username === 'innomax' && password === '0901') {
+                isValid = true;
+                userRole = 'staff';
+            } else if (userType === 'customer' && username === 'on-semi' && password === '0561') {
+                isValid = true;
+                userRole = 'customer';
+            }
+            
+            if (isValid) {
+                // 로그인 정보 저장
+                const userData = {
+                    username: username,
+                    userType: userType,
+                    userRole: userRole,
+                    loggedIn: true
+                };
+                
+                localStorage.setItem('userData', JSON.stringify(userData));
+                
+                // 메인 페이지로 리다이렉트
+                window.location.href = 'index.html';
+            } else {
+                // 에러 메시지 표시
+                loginError.textContent = loginError.dataset.message || '아이디 또는 비밀번호가 올바르지 않습니다.';
+                loginError.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
