@@ -1,4 +1,18 @@
+// 전역 변수 추가
+let currentEnhancedPrompt = null;
+let originalMessage = null;
+let chatProcessing = false;
+
 // DOM 엘리먼트
+
+// 프롬프트 관련
+const promptCheckContainer = document.getElementById('promptCheckContainer');
+const originalQuestionText = document.getElementById('originalQuestionText');
+const enhancedPromptText = document.getElementById('enhancedPromptText');
+const confirmPromptBtn = document.getElementById('confirmPrompt');
+const rejectPromptBtn = document.getElementById('rejectPrompt');
+
+
 const chatMessages = document.getElementById('chatMessages');
 const userInput = document.getElementById('userInput');
 const sendButton = document.getElementById('sendButton');
@@ -23,7 +37,7 @@ const isGitHubPages = window.location.hostname.includes('github.io');
 // API 엔드포인트 설정 - GitHub Pages와 다른 환경에 맞게 조정
 let API_URL = isGitHubPages 
     ? 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api/chat' 
-    : '/api/chat';
+    : 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api/chat' ;
 
 // AI 모델 정보 - 서버와 일치하도록 설정
 const AI_MODEL_INFO = {
@@ -56,21 +70,37 @@ async function loadConfig() {
     // 브라우저에서 직접 파일을 열었는지 확인
     const isLocalFile = window.location.protocol === 'file:';
     
-    if (isLocalFile || isGitHubPages) {
-        console.log('로컬 파일 또는 GitHub Pages에서 실행 중입니다. 기본 설정을 사용합니다.');
-        return; // 로컬 파일이나 GitHub Pages에서 실행 중이면 fetch 요청을 건너뜀
+    // GitHub Pages 확인 (github.io 도메인 사용)
+    const isGitHubPages = window.location.hostname.includes('github.io');
+    
+    // 로컬 개발 서버 확인 (127.0.0.1 또는 localhost)
+    const isLocalDev = window.location.hostname === '127.0.0.1' || 
+                       window.location.hostname === 'localhost';
+    
+    if (isLocalFile || isGitHubPages || isLocalDev) {
+        console.log('로컬 환경에서 실행 중입니다. 기본 설정을 사용합니다.');
+        // 로컬 개발 환경을 위한 기본 API URL 설정
+        API_URL = 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api/chat';
+        console.log('로컬 개발용 API URL 설정됨:', API_URL);
+        return; // fetch 요청을 건너뜀
     }
     
     try {
-        // 서버에서 제공하는 설정 엔드포인트에 맞춰 경로 수정 (CloudType 환경에서만 실행)
+        // 프로덕션 환경에서만 서버 설정을 가져옴
         const response = await fetch('/config');
-        if (response.ok) {
-            const config = await response.json();
-            console.log('서버 설정 로드됨:', config);
-            if (config.apiUrl) {
-                API_URL = config.apiUrl;
-                console.log('API URL 업데이트됨:', API_URL);
-            }
+        
+        if (!response.ok) {
+            console.log(`설정을 가져오지 못했습니다. 상태 코드: ${response.status}`);
+            console.log('기본 API URL 사용:', API_URL);
+            return;
+        }
+        
+        const config = await response.json();
+        console.log('서버 설정 로드됨:', config);
+        
+        if (config.apiUrl) {
+            API_URL = config.apiUrl;
+            console.log('API URL 업데이트됨:', API_URL);
         }
     } catch (error) {
         console.error('설정을 로드하는 중 오류 발생:', error);
@@ -88,6 +118,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         await loadConfig();
         
+
+        // 프롬프트 확인 버튼 이벤트 리스너 추가
+        if (confirmPromptBtn) {
+            confirmPromptBtn.addEventListener('click', proceedWithConfirmedPrompt);
+        }
+        
+        // 프롬프트 거부 버튼 이벤트 리스너 추가
+        if (rejectPromptBtn) {
+            rejectPromptBtn.addEventListener('click', rejectPrompt);
+        }
+
         // AI 모델 정보 표시
         if (modelBadge) {
             modelBadge.textContent = AI_MODEL_INFO.chat;
@@ -159,7 +200,16 @@ function getTranslation(key, lang) {
             'selectCustomer': '고객사 선택',
             'enterMessage': '메시지를 입력하세요...',
             'welcomeMessage': '안녕하세요! 이노맥스 챗봇입니다. 무엇을 도와드릴까요? 장비군과 고객사를 선택하시면 더 정확한 답변을 드릴 수 있습니다.',
-            'poweredBy': 'Vector DB: Pinecone | Embedding: text-embedding-3-small | Model: GPT-4o-mini'
+            'poweredBy': 'Vector DB: Pinecone | Embedding: text-embedding-3-small | Model: GPT-4o-mini',
+            
+            'promptVerification': '질문 의도 확인',
+            'originalQuestion': '원래 질문',
+            'enhancedPrompt': '개선된 질문',
+            'confirmationQuestion': '이 질문이 의도하신 내용이 맞나요?',
+            'confirmPrompt': '맞습니다, 계속하세요',
+            'rejectPrompt': '아니요, 수정할게요',
+
+            
         },
         'en': {
             'aiHelper': 'AI HELPER',
@@ -176,7 +226,14 @@ function getTranslation(key, lang) {
             'selectCustomer': 'Select Customer',
             'enterMessage': 'Enter your message...',
             'welcomeMessage': 'Hello! I am Innomax chatbot. How can I help you? Select equipment type and customer for more accurate answers.',
-            'poweredBy': 'Vector DB: Pinecone | Embedding: text-embedding-3-small | Model: GPT-4o-mini'
+            'poweredBy': 'Vector DB: Pinecone | Embedding: text-embedding-3-small | Model: GPT-4o-mini',
+
+            'promptVerification': 'Question Intent Verification',
+            'originalQuestion': 'Original Question',
+            'enhancedPrompt': 'Enhanced Question',
+            'confirmationQuestion': 'Is this what you intended to ask?',
+            'confirmPrompt': 'Yes, continue',
+            'rejectPrompt': 'No, I will modify',
         },
         'ja': {
             'aiHelper': 'AI HELPER',
@@ -193,7 +250,14 @@ function getTranslation(key, lang) {
             'selectCustomer': '顧客を選択',
             'enterMessage': 'メッセージを入力...',
             'welcomeMessage': 'こんにちは！INNOMAXチャットボットです。どのようにお手伝いできますか？装置タイプと顧客を選択すると、より正確な回答ができます。',
-            'poweredBy': 'Vector DB: Pinecone | Embedding: text-embedding-3-small | Model: GPT-4o-mini'
+            'poweredBy': 'Vector DB: Pinecone | Embedding: text-embedding-3-small | Model: GPT-4o-mini',
+
+            'promptVerification': '質問の意図確認',
+            'originalQuestion': '元の質問',
+            'enhancedPrompt': '改善された質問',
+            'confirmationQuestion': 'これはあなたが意図した質問ですか？',
+            'confirmPrompt': 'はい、続けてください',
+            'rejectPrompt': 'いいえ、修正します',
         },
         'zh': {
             'aiHelper': 'AI HELPER',
@@ -210,7 +274,14 @@ function getTranslation(key, lang) {
             'selectCustomer': '选择客户',
             'enterMessage': '输入您的消息...',
             'welcomeMessage': '您好！我是INNOMAX聊天机器人。我能为您做什么？选择设备类型和客户可以获得更准确的答案。',
-            'poweredBy': 'Vector DB: Pinecone | Embedding: text-embedding-3-small | Model: GPT-4o-mini'
+            'poweredBy': 'Vector DB: Pinecone | Embedding: text-embedding-3-small | Model: GPT-4o-mini',
+
+            'promptVerification': '问题意图确认',
+            'originalQuestion': '原始问题',
+            'enhancedPrompt': '改进的问题',
+            'confirmationQuestion': '这是您想问的问题吗？',
+            'confirmPrompt': '是的，请继续',
+            'rejectPrompt': '不，我要修改',
         }
     };
     
@@ -268,12 +339,19 @@ function formatTime() {
 
 // 사용자 메시지 처리
 async function handleUserMessage() {
+    if (chatProcessing) return; // 이미 처리 중이면 중복 요청 방지
+    
     const message = userInput.value.trim();
     if (!message) return;
 
+    chatProcessing = true;
+
     // 로그인 확인
     const userData = checkLogin();
-    if (!userData) return;
+    if (!userData) {
+        chatProcessing = false;
+        return;
+    }
 
     // 사용자 메시지 UI에 추가
     addMessageToUI('user', message);
@@ -289,87 +367,12 @@ async function handleUserMessage() {
     // 현재 언어 설정 가져오기
     const currentLang = localStorage.getItem('preferredLanguage') || 'ko';
 
-    // 로컬 파일로 실행 중인 경우 서버 요청을 보내지 않고 가상 응답을 생성
-    if (isLocalFile) {
-        // 잠시 딜레이를 줘서 로딩 효과를 보여줌
-        setTimeout(() => {
-            const responses = {
-                'ko': {
-                    '안녕': '안녕하세요! 이노맥스 챗봇입니다. 무엇을 도와드릴까요?',
-                    '회사 소개': '이노맥스는 혁신적인 기술 솔루션을 제공하는 회사입니다. 최신 기술과 전문 지식을 바탕으로 고객에게 최상의 서비스를 제공하고 있습니다.',
-                    '도움말': '저는 이노맥스 챗봇입니다. 일반 정보, 재무 정보, 장비 정보 등에 대해 답변할 수 있습니다.',
-                    '모델': `현재 이 챗봇은 OpenAI의 ${AI_MODEL_INFO.chat} 모델을 사용하며, 벡터 임베딩은 ${AI_MODEL_INFO.embedding} 모델을 사용합니다. Pinecone 벡터 데이터베이스에 저장된 회사 정보를 검색하여 질문에 답변합니다.`
-                },
-                'en': {
-                    'hello': 'Hello! I am Innomax chatbot. How can I help you?',
-                    'company': 'Innomax is a company that provides innovative technology solutions. We offer the best service to our customers based on the latest technology and expertise.',
-                    'help': 'I am Innomax chatbot. I can answer questions about general information, financial information, equipment information, etc.',
-                    'model': `This chatbot currently uses OpenAI's ${AI_MODEL_INFO.chat} model, and the vector embedding uses the ${AI_MODEL_INFO.embedding} model. It answers questions by searching for company information stored in the Pinecone vector database.`
-                },
-                'ja': {
-                    'こんにちは': 'こんにちは！INNOMAXチャットボットです。どのようにお手伝いできますか？',
-                    '会社': 'INNOMAXは革新的な技術ソリューションを提供する会社です。最新の技術と専門知識に基づいて、お客様に最高のサービスを提供しています。',
-                    'ヘルプ': '私はINNOMAXチャットボットです。一般情報、財務情報、機器情報などについて回答できます。',
-                    'モデル': `現在、このチャットボットはOpenAIの${AI_MODEL_INFO.chat}モデルを使用し、ベクトル埋め込みは${AI_MODEL_INFO.embedding}モデルを使用しています。Pineconeベクトルデータベースに保存されている会社情報を検索して質問に答えます。`
-                },
-                'zh': {
-                    '你好': '您好！我是INNOMAX聊天机器人。我能为您做什么？',
-                    '公司': 'INNOMAX是提供创新技术解决方案的公司。我们基于最新技术和专业知识为客户提供最佳服务。',
-                    '帮助': '我是INNOMAX聊天机器人。我可以回答有关一般信息、财务信息、设备信息等问题。',
-                    '模型': `目前，此聊天机器人使用OpenAI的${AI_MODEL_INFO.chat}模型，向量嵌入使用${AI_MODEL_INFO.embedding}模型。它通过搜索存储在Pinecone向量数据库中的公司信息来回答问题。`
-                }
-            };
-
-            // 현재 언어에 맞는 응답 찾기
-            const langResponses = responses[currentLang] || responses['en'];
-            
-            // 키워드 매칭 시도
-            let foundResponse = null;
-            for (const [key, value] of Object.entries(langResponses)) {
-                if (message.toLowerCase().includes(key.toLowerCase())) {
-                    foundResponse = value;
-                    break;
-                }
-            }
-
-            // 매칭된 응답이 없으면 기본 응답 사용
-            let botResponse = null;
-            if (foundResponse) {
-                botResponse = foundResponse;
-            } else {
-                // 다른 언어에서도 찾아보기
-                for (const lang in responses) {
-                    if (lang === currentLang) continue; // 이미 확인한 언어 건너뛰기
-                    
-                    for (const [key, value] of Object.entries(responses[lang])) {
-                        if (message.toLowerCase().includes(key.toLowerCase())) {
-                            // 다른 언어의 응답을 현재 언어로 변환 (간단한 매핑)
-                            const keyIndex = Object.keys(responses[lang]).indexOf(key);
-                            const currentLangKeys = Object.keys(langResponses);
-                            if (keyIndex >= 0 && keyIndex < currentLangKeys.length) {
-                                foundResponse = langResponses[currentLangKeys[keyIndex]];
-                                break;
-                            }
-                        }
-                    }
-                    
-                    if (foundResponse) break;
-                }
-                
-                botResponse = foundResponse || getDefaultResponse(currentLang);
-            }
-            
-            chatMessages.removeChild(loadingIndicator);
-            addMessageToUI('bot', botResponse);
-            
-            // 전송 버튼 복원
-            sendButton.disabled = false;
-            sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
-        }, 1500); // 1.5초 후 응답
-        return;
-    }
-
     try {
+        // 필터 값 가져오기
+        const questionType = document.getElementById('QuestionType')?.value || '';
+        const equipmentType = document.getElementById('equipmentType')?.value || '';
+        const customerName = document.getElementById('customerName')?.value || '';
+        
         // 백엔드 서버에 메시지 전송
         const response = await fetch(API_URL, {
             method: 'POST',
@@ -379,7 +382,11 @@ async function handleUserMessage() {
             body: JSON.stringify({ 
                 message,
                 userType: userData.userType,
-                language: currentLang // 언어 정보 추가
+                language: currentLang,
+                confirmPrompt: false, // 초기 요청은 확인 없이 전송
+                questionType,
+                equipmentType,
+                customerName
             })
         });
 
@@ -390,7 +397,26 @@ async function handleUserMessage() {
 
         const data = await response.json();
         
-        // 로딩 표시 제거 및 답변 표시
+        // 프롬프트 확인이 필요한 경우
+        if (data.requireConfirmation) {
+            // 로딩 표시 제거
+            chatMessages.removeChild(loadingIndicator);
+            
+            currentEnhancedPrompt = data.enhancedPrompt;
+            originalMessage = data.originalMessage;
+            
+            // 프롬프트 확인 UI 표시
+            showPromptConfirmation(originalMessage, currentEnhancedPrompt);
+            
+            // 전송 버튼 복원
+            sendButton.disabled = false;
+            sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            
+            chatProcessing = false;
+            return;
+        }
+        
+        // 일반 응답 처리
         chatMessages.removeChild(loadingIndicator);
         addMessageToUI('bot', data.response);
     } catch (error) {
@@ -404,7 +430,100 @@ async function handleUserMessage() {
         
         // 입력 필드에 포커스
         userInput.focus();
+        
+        chatProcessing = false;
     }
+}
+
+
+// 프롬프트 확인 UI 표시 함수 (새로 추가)
+function showPromptConfirmation(originalQuestion, enhancedPrompt) {
+    if (!promptCheckContainer || !originalQuestionText || !enhancedPromptText) {
+        console.error('프롬프트 확인 UI 요소를 찾을 수 없습니다');
+        return;
+    }
+    
+    // 텍스트 설정
+    originalQuestionText.textContent = originalQuestion;
+    enhancedPromptText.textContent = enhancedPrompt;
+    
+    // 컨테이너 표시
+    promptCheckContainer.style.display = 'flex';
+}
+
+// 확인된 프롬프트로 진행하는 함수 (새로 추가)
+async function proceedWithConfirmedPrompt() {
+    if (chatProcessing) return;
+    chatProcessing = true;
+    
+    // 프롬프트 확인 UI 숨기기
+    if (promptCheckContainer) {
+        promptCheckContainer.style.display = 'none';
+    }
+    
+    // 로딩 표시 추가
+    const loadingIndicator = addLoadingIndicator();
+    
+    // 현재 언어 설정 가져오기
+    const currentLang = localStorage.getItem('preferredLanguage') || 'ko';
+    
+    try {
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        
+        // 확인된 프롬프트로 API 요청
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: currentEnhancedPrompt,
+                userType: userData.userType,
+                language: currentLang,
+                confirmPrompt: true,
+                originalMessage: originalMessage
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: getServerErrorMessage(currentLang) }));
+            throw new Error(errorData.error || getServerErrorMessage(currentLang));
+        }
+        
+        const data = await response.json();
+        
+        // 응답 UI 추가
+        chatMessages.removeChild(loadingIndicator);
+        addMessageToUI('bot', data.response);
+        
+        // 상태 초기화
+        currentEnhancedPrompt = null;
+        originalMessage = null;
+    } catch (error) {
+        console.error('API 요청 오류:', error);
+        chatMessages.removeChild(loadingIndicator);
+        addMessageToUI('bot', getErrorMessage(currentLang));
+    } finally {
+        chatProcessing = false;
+    }
+}
+
+// 프롬프트 거부 및 수정 함수 (새로 추가)
+function rejectPrompt() {
+    if (!promptCheckContainer) return;
+    
+    // 프롬프트 확인 UI 숨기기
+    promptCheckContainer.style.display = 'none';
+    
+    // 원래 메시지를 입력창에 다시 표시
+    if (userInput && originalMessage) {
+        userInput.value = originalMessage;
+        userInput.focus();
+    }
+    
+    // 상태 초기화
+    currentEnhancedPrompt = null;
+    originalMessage = null;
 }
 
 // 기본 응답 메시지 가져오기

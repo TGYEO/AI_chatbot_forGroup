@@ -276,95 +276,126 @@
         }
     </script>
 </head>
+
+
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <div class="company-logo">
-                <img src="public/images/company-logo.png" alt="이노맥스 로고" id="companyLogo">
-                <h1 data-translate="aiHelper">AI HELPER</h1>
+
+    <div class="main-container">
+
+        <div class="chat-container">
+            <div class="chat-header">
+                <div class="company-logo">
+                    <img src="public/images/company-logo.png" alt="이노맥스 로고" id="companyLogo">
+                    <h1 data-translate="aiHelper">AI HELPER</h1>
+                </div>
+                
+                <div class="user-info">
+                    <div>
+                        <span class="user-badge" id="userType">이노맥스 직원</span>
+                        <span id="username">사용자</span>
+                    </div>
+                    <button class="logout-btn" id="logoutBtn" data-translate="logout">로그아웃</button>
+                    <div class="language-selector">
+                        <select id="language">
+                            <option value="en">English</option>
+                            <option value="ko" selected>한국어</option>
+                            <option value="ja">日本語</option>
+                            <option value="zh">中文</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             
-            <div class="user-info">
-                <div>
-                    <span class="user-badge" id="userType">이노맥스 직원</span>
-                    <span id="username">사용자</span>
-                </div>
-                <button class="logout-btn" id="logoutBtn" data-translate="logout">로그아웃</button>
-                <div class="language-selector">
-                    <select id="language">
-                        <option value="en">English</option>
-                        <option value="ko" selected>한국어</option>
-                        <option value="ja">日本語</option>
-                        <option value="zh">中文</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 필터 선택 섹션 -->
-        <div class="filter-section">
-            <div class="filter-container">
-                <div class="filter-group">
-                    <label for="QuestionType" data-translate="questionType">질문유형</label>
-                    <select id="QuestionType" class="filter-dropdown">
-                        <option value="" disabled selected data-translate="selectQuestionType">질문유형 선택</option>
-                        <option value="PROBLEM" data-translate="problemSolving">문제 해결</option>
-                        <option value="SEARCH" data-translate="dataSearch">자료 검색</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="equipmentType" data-translate="equipmentType">장비군</label>
-                    <select id="equipmentType" class="filter-dropdown">
-                        <option value="" disabled selected data-translate="selectEquipment">장비군 선택</option>
-                        <option value="ASTRO">ASTRO (SPIN)</option>
-                        <option value="TRAUM">TRAUM (BATH)</option>
-                        <option value="THETIS">THETIS (CASSETTE CLEANER)</option>
-                        <option value="IMD_DRYER">IMD DRYER</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="customerName" data-translate="customerName">고객사</label>
-                    <select id="customerName" class="filter-dropdown">
-                        <option value="" disabled selected data-translate="selectCustomer">고객사 선택</option>
-                        <option value="ON-SEMI">ON-SEMI</option>
-                        <option value="NEPES">NEPES</option>
-                        <option value="DB하이텍">DB하이텍</option>
-                        <option value="SK실트론">SK실트론</option>
-                        <option value="삼성종기원">삼성종기원</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        
-        <div class="chat-messages" id="chatMessages">
-            <!-- 메시지가 여기에 동적으로 추가됩니다 -->
-            <div class="message bot">
-                <div class="avatar">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <div class="message-bubble">
-                    <div class="message-content" id="welcomeMsg" data-translate="welcomeMessage">
-                        안녕하세요! 이노맥스 챗봇입니다. 무엇을 도와드릴까요? 장비군과 고객사를 선택하시면 더 정확한 답변을 드릴 수 있습니다.
+            <!-- 필터 선택 섹션 -->
+            <div class="filter-section">
+                <div class="filter-container">
+                    <div class="filter-group">
+                        <label for="QuestionType" data-translate="questionType">질문유형</label>
+                        <select id="QuestionType" class="filter-dropdown">
+                            <option value="" disabled selected data-translate="selectQuestionType">질문유형 선택</option>
+                            <option value="PROBLEM" data-translate="problemSolving">문제 해결</option>
+                            <option value="SEARCH" data-translate="dataSearch">자료 검색</option>
+                        </select>
                     </div>
-                    <div class="message-time" id="initialMessageTime">지금
+                    <div class="filter-group">
+                        <label for="equipmentType" data-translate="equipmentType">장비군</label>
+                        <select id="equipmentType" class="filter-dropdown">
+                            <option value="" disabled selected data-translate="selectEquipment">장비군 선택</option>
+                            <option value="ASTRO">ASTRO (SPIN)</option>
+                            <option value="TRAUM">TRAUM (BATH)</option>
+                            <option value="THETIS">THETIS (CASSETTE CLEANER)</option>
+                            <option value="IMD_DRYER">IMD DRYER</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="customerName" data-translate="customerName">고객사</label>
+                        <select id="customerName" class="filter-dropdown">
+                            <option value="" disabled selected data-translate="selectCustomer">고객사 선택</option>
+                            <option value="ON-SEMI">ON-SEMI</option>
+                            <option value="NEPES">NEPES</option>
+                            <option value="DB하이텍">DB하이텍</option>
+                            <option value="SK실트론">SK실트론</option>
+                            <option value="삼성종기원">삼성종기원</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <!-- 메시지가 여기에 동적으로 추가됩니다 -->
+                <div class="message bot">
+                    <div class="avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-bubble">
+                        <div class="message-content" id="welcomeMsg" data-translate="welcomeMessage">
+                            안녕하세요! 이노맥스 챗봇입니다. 무엇을 도와드릴까요? 장비군과 고객사를 선택하시면 더 정확한 답변을 드릴 수 있습니다.
+                        </div>
+                        <div class="message-time" id="initialMessageTime">지금</div>
+                    </div>
+                </div>
+            </div>
 
-                    </div>
+
+            <div class="chat-input">
+                <div class="input-container">
+                    <input type="text" id="userInput" placeholder="메시지를 입력하세요...">
+                    <button id="sendButton">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div class="powered-by">
+                    <span>Vector DB: Pinecone | Embedding: text-embedding-3-small | Model: GPT-4o-mini</span>
                 </div>
             </div>
         </div>
-        
-        <div class="chat-input">
-            <div class="input-container">
-                <input type="text" id="userInput" placeholder="메시지를 입력하세요...">
-                <button id="sendButton">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
+    
+        <div class="prompt-check-container" id="promptCheckContainer" >
+            <div class="prompt-check-header">
+                <h2 data-translate="promptVerification">질문 의도 확인</h2>
             </div>
-            <div class="powered-by">
-                <span>Vector DB: Pinecone | Embedding: text-embedding-3-small | Model: GPT-4o-mini</span>
+            <div class="prompt-check-content">
+                <div class="original-question-section">
+                    <h3 data-translate="originalQuestion">원래 질문</h3>
+                    <div class="question-box" id="originalQuestionText"></div>
+                </div>
+                <div class="enhanced-prompt-section">
+                    <h3 data-translate="enhancedPrompt">개선된 질문</h3>
+                    <div class="question-box" id="enhancedPromptText"></div>
+                </div>
+                <div class="prompt-confirmation-text" data-translate="confirmationQuestion">
+                    이 질문이 의도하신 내용이 맞나요?
+                </div>
+                <div class="prompt-actions">
+                    <button id="confirmPrompt" class="confirm-btn" data-translate="confirmPrompt">맞습니다, 계속하세요</button>
+                    <button id="rejectPrompt" class="reject-btn" data-translate="rejectPrompt">아니요, 수정할게요</button>
+                </div>
             </div>
         </div>
     </div>
+   
+
+
 
     <script src="public/script.js"></script>
 </body>
