@@ -631,8 +631,8 @@ function rejectPrompt() {
     }
     
     // 프롬프트 확인 UI 숨기기
-    promptCheckContainer.style.display = 'none';
-    console.log('[DEBUG] 프롬프트 확인 UI 숨김 처리 완료');
+    //promptCheckContainer.style.display = 'none';
+    //console.log('[DEBUG] 프롬프트 확인 UI 숨김 처리 완료');
     
     // 원래 메시지를 입력창에 다시 표시
     if (userInput && originalMessage) {
