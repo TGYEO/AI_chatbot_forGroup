@@ -35,9 +35,13 @@ function checkLogin() {
 const isGitHubPages = window.location.hostname.includes('github.io');
 
 // API 엔드포인트 설정 - GitHub Pages와 다른 환경에 맞게 조정
-let API_URL = isGitHubPages 
+let API_CHAT_URL = isGitHubPages //이건 질문하는거
     ? 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api/chat' 
-    : 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api/chat' ;
+    : 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api/chat';
+
+let API_ENHANCE_URL = isGitHubPages  //이건 프롬프트 개선하는거
+    ? 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api/enhance-prompt' 
+    : 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api/enhance-prompt';
 
 // AI 모델 정보 - 서버와 일치하도록 설정
 const AI_MODEL_INFO = {
@@ -109,7 +113,7 @@ async function loadConfig() {
     }
 }
 
-// 페이지 로드 시 설정 로드
+// 페이지 폼 로드시 이벤트 핸들러 등록때리는곳
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         // 로그인 확인
@@ -117,16 +121,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!userData) return;
         
         await loadConfig();
-        
 
         // 프롬프트 확인 버튼 이벤트 리스너 추가
         if (confirmPromptBtn) {
             confirmPromptBtn.addEventListener('click', proceedWithConfirmedPrompt);
+            console.log('confirm 버튼 이벤트 리스너 등록 완료');
+        } else {
+            console.error('confirmPromptBtn 요소를 찾을 수 없습니다');
         }
         
         // 프롬프트 거부 버튼 이벤트 리스너 추가
         if (rejectPromptBtn) {
             rejectPromptBtn.addEventListener('click', rejectPrompt);
+            console.log('reject 버튼 이벤트 리스너 등록 완료');
+        } else {
+            console.error('rejectPromptBtn 요소를 찾을 수 없습니다');
         }
 
         // AI 모델 정보 표시
@@ -337,9 +346,9 @@ function formatTime() {
     }
 }
 
-// 사용자 메시지 처리
+// 첫번째 프롬프트를 개선하는 함수
 async function handleUserMessage() {
-    if (chatProcessing) return; // 이미 처리 중이면 중복 요청 방지
+    if (chatProcessing) return;
     
     const message = userInput.value.trim();
     if (!message) return;
@@ -368,13 +377,10 @@ async function handleUserMessage() {
     const currentLang = localStorage.getItem('preferredLanguage') || 'ko';
 
     try {
-        // 필터 값 가져오기
-        const questionType = document.getElementById('QuestionType')?.value || '';
-        const equipmentType = document.getElementById('equipmentType')?.value || '';
-        const customerName = document.getElementById('customerName')?.value || '';
-        
-        // 백엔드 서버에 메시지 전송
-        const response = await fetch(API_URL, {
+        // 백엔드 서버에 프롬프트 개선 요청
+        const response = await fetch(isGitHubPages 
+            ? 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api/enhance-prompt' 
+            : 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api/enhance-prompt', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -382,11 +388,7 @@ async function handleUserMessage() {
             body: JSON.stringify({ 
                 message,
                 userType: userData.userType,
-                language: currentLang,
-                confirmPrompt: false, // 초기 요청은 확인 없이 전송
-                questionType,
-                equipmentType,
-                customerName
+                language: currentLang
             })
         });
 
@@ -397,28 +399,16 @@ async function handleUserMessage() {
 
         const data = await response.json();
         
-        // 프롬프트 확인이 필요한 경우
-        if (data.requireConfirmation) {
-            // 로딩 표시 제거
-            chatMessages.removeChild(loadingIndicator);
-            
-            currentEnhancedPrompt = data.enhancedPrompt;
-            originalMessage = data.originalMessage;
-            
-            // 프롬프트 확인 UI 표시
-            showPromptConfirmation(originalMessage, currentEnhancedPrompt);
-            
-            // 전송 버튼 복원
-            sendButton.disabled = false;
-            sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
-            
-            chatProcessing = false;
-            return;
-        }
-        
-        // 일반 응답 처리
+        // 로딩 표시 제거
         chatMessages.removeChild(loadingIndicator);
-        addMessageToUI('bot', data.response);
+        
+        // 전역 상태 변수 업데이트
+        currentEnhancedPrompt = data.enhancedPrompt;
+        originalMessage = data.originalMessage;
+        
+        // 프롬프트 확인 UI 표시
+        showPromptConfirmation(originalMessage, currentEnhancedPrompt);
+            
     } catch (error) {
         console.error('오류 발생:', error);
         chatMessages.removeChild(loadingIndicator);
@@ -435,23 +425,7 @@ async function handleUserMessage() {
     }
 }
 
-
-// 프롬프트 확인 UI 표시 함수 (새로 추가)
-function showPromptConfirmation(originalQuestion, enhancedPrompt) {
-    if (!promptCheckContainer || !originalQuestionText || !enhancedPromptText) {
-        console.error('프롬프트 확인 UI 요소를 찾을 수 없습니다');
-        return;
-    }
-    
-    // 텍스트 설정
-    originalQuestionText.textContent = originalQuestion;
-    enhancedPromptText.textContent = enhancedPrompt;
-    
-    // 컨테이너 표시
-    promptCheckContainer.style.display = 'flex';
-}
-
-// 확인된 프롬프트로 진행하는 함수 (새로 추가)
+// 두번째 개선된 프롬프트로 질문하는 함수
 async function proceedWithConfirmedPrompt() {
     if (chatProcessing) return;
     chatProcessing = true;
@@ -470,18 +444,27 @@ async function proceedWithConfirmedPrompt() {
     try {
         const userData = JSON.parse(localStorage.getItem('userData') || '{}');
         
-        // 확인된 프롬프트로 API 요청
-        const response = await fetch(API_URL, {
+        // 필터 값 가져오기
+        const questionType = document.getElementById('QuestionType')?.value || '';
+        const equipmentType = document.getElementById('equipmentType')?.value || '';
+        const customerName = document.getElementById('customerName')?.value || '';
+        
+        // 채팅 응답 요청
+        const response = await fetch(isGitHubPages 
+            ? 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api/chat' 
+            : 'https://port-0-ai-chatbot-forgroup-m8bfjrmj2356a824.sel4.cloudtype.app/api/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 message: currentEnhancedPrompt,
+                originalMessage: originalMessage,
                 userType: userData.userType,
                 language: currentLang,
-                confirmPrompt: true,
-                originalMessage: originalMessage
+                questionType,
+                equipmentType,
+                customerName
             })
         });
         
@@ -508,22 +491,160 @@ async function proceedWithConfirmedPrompt() {
     }
 }
 
-// 프롬프트 거부 및 수정 함수 (새로 추가)
+// 프롬프트 확인 UI 표시 함수
+function showPromptConfirmation(originalQuestion, enhancedPrompt) {
+    console.log('[DEBUG] showPromptConfirmation 함수 시작');
+    console.log('[DEBUG] DOM 요소 확인:', {
+        promptCheckContainer: !!promptCheckContainer,
+        originalQuestionText: !!originalQuestionText,
+        enhancedPromptText: !!enhancedPromptText
+    });
+    
+    if (!promptCheckContainer || !originalQuestionText || !enhancedPromptText) {
+        console.error('[DEBUG] 프롬프트 확인 UI 요소를 찾을 수 없습니다');
+        return;
+    }
+    
+    // 텍스트 설정
+    originalQuestionText.textContent = originalQuestion;
+    enhancedPromptText.textContent = enhancedPrompt;
+    console.log('[DEBUG] 프롬프트 확인 UI 텍스트 설정 완료');
+    
+    // 컨테이너 표시
+    promptCheckContainer.style.display = 'flex';
+    console.log('[DEBUG] 프롬프트 확인 UI 표시 완료');
+}
+
+// 확인된 프롬프트로 진행하는 함수
+async function proceedWithConfirmedPrompt() {
+    console.log('[DEBUG] proceedWithConfirmedPrompt 함수 시작');
+    
+    if (chatProcessing) {
+        console.log('[DEBUG] 이미 처리 중이므로 함수 종료');
+        return;
+    }
+    chatProcessing = true;
+    console.log('[DEBUG] chatProcessing 상태:', chatProcessing);
+    
+    // 프롬프트 확인 UI 숨기기
+    if (promptCheckContainer) {
+        promptCheckContainer.style.display = 'none';
+        console.log('[DEBUG] 프롬프트 확인 UI 숨김 처리 완료');
+    }
+    
+    // 로딩 표시 추가
+    const loadingIndicator = addLoadingIndicator();
+    console.log('[DEBUG] 로딩 인디케이터 추가 완료');
+    
+    // 현재 언어 설정 가져오기
+    const currentLang = localStorage.getItem('preferredLanguage') || 'ko';
+    console.log('[DEBUG] 현재 언어 설정:', currentLang);
+    
+    try {
+        console.log('[DEBUG] currentEnhancedPrompt 확인:', currentEnhancedPrompt);
+        console.log('[DEBUG] originalMessage 확인:', originalMessage);
+        
+        if (!currentEnhancedPrompt || !originalMessage) {
+            console.error('[DEBUG] 필수 전역 변수가 설정되지 않았습니다');
+            throw new Error('프롬프트 정보가 누락되었습니다');
+        }
+        
+        // 사용자 데이터 가져오기
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        console.log('[DEBUG] 사용자 데이터:', userData);
+        
+        // 필터 값 가져오기
+        const questionType = document.getElementById('QuestionType')?.value || '';
+        const equipmentType = document.getElementById('equipmentType')?.value || '';
+        const customerName = document.getElementById('customerName')?.value || '';
+        console.log('[DEBUG] 필터 값:', { questionType, equipmentType, customerName });
+        
+        console.log('[DEBUG] 확인된 프롬프트로 API 요청 시작 - URL:', API_URL);
+        // 확인된 프롬프트로 API 요청
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: currentEnhancedPrompt,
+                userType: userData.userType,
+                language: currentLang,
+                confirmPrompt: true,
+                originalMessage: originalMessage,
+                questionType: questionType,
+                equipmentType: equipmentType,
+                customerName: customerName
+            })
+        });
+        console.log('[DEBUG] API 응답 상태:', response.status);
+        
+        if (!response.ok) {
+            console.log('[DEBUG] API 응답 오류 상태:', response.status);
+            const errorData = await response.json().catch(() => {
+                console.log('[DEBUG] 오류 응답 파싱 실패');
+                return { error: getServerErrorMessage(currentLang) };
+            });
+            throw new Error(errorData.error || getServerErrorMessage(currentLang));
+        }
+        
+        const data = await response.json();
+        console.log('[DEBUG] API 응답 데이터:', data);
+        
+        // 응답 UI 추가
+        chatMessages.removeChild(loadingIndicator);
+        console.log('[DEBUG] 로딩 인디케이터 제거 완료');
+        
+        addMessageToUI('bot', data.response);
+        console.log('[DEBUG] 봇 응답 UI 추가 완료');
+        
+        // 상태 초기화
+        currentEnhancedPrompt = null;
+        originalMessage = null;
+        console.log('[DEBUG] 전역 상태 변수 초기화 완료');
+    } catch (error) {
+        console.error('[DEBUG] API 요청 오류:', error);
+        chatMessages.removeChild(loadingIndicator);
+        addMessageToUI('bot', getErrorMessage(currentLang));
+    } finally {
+        // 전송 버튼 복원
+        sendButton.disabled = false;
+        sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        console.log('[DEBUG] 전송 버튼 복원 완료');
+        
+        // 입력 필드에 포커스
+        userInput.focus();
+        console.log('[DEBUG] 입력 필드 포커스 설정 완료');
+        
+        chatProcessing = false;
+        console.log('[DEBUG] chatProcessing 상태 재설정:', chatProcessing);
+    }
+}
+
+// 프롬프트 거부 및 수정 함수
 function rejectPrompt() {
-    if (!promptCheckContainer) return;
+    console.log('[DEBUG] rejectPrompt 함수 시작');
+    
+    if (!promptCheckContainer) {
+        console.error('[DEBUG] promptCheckContainer를 찾을 수 없습니다');
+        return;
+    }
     
     // 프롬프트 확인 UI 숨기기
     promptCheckContainer.style.display = 'none';
+    console.log('[DEBUG] 프롬프트 확인 UI 숨김 처리 완료');
     
     // 원래 메시지를 입력창에 다시 표시
     if (userInput && originalMessage) {
         userInput.value = originalMessage;
         userInput.focus();
+        console.log('[DEBUG] 원래 메시지를 입력창에 다시 표시 완료');
     }
     
     // 상태 초기화
     currentEnhancedPrompt = null;
     originalMessage = null;
+    console.log('[DEBUG] 전역 상태 변수 초기화 완료');
 }
 
 // 기본 응답 메시지 가져오기

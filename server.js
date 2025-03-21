@@ -276,10 +276,10 @@ app.post('/api/chat-prototype', (req, res) => {
   }
 });
 
-// 채팅 API 엔드포인트
-app.post('/api/chat', validateUser, async (req, res) => {
+// 1. 프롬프트 개선 API
+app.post('/api/enhance-prompt', validateUser, async (req, res) => {
   try {
-    const { message, userType, language = 'ko', confirmPrompt = false, originalMessage = null } = req.body;
+    const { message, language = 'ko' } = req.body;
     
     if (!message) {
       return res.status(400).json({ error: '메시지를 입력해주세요' });
@@ -290,67 +290,10 @@ app.post('/api/chat', validateUser, async (req, res) => {
       return res.status(500).json({ error: 'OpenAI API 키가 설정되지 않았습니다' });
     }
 
-    if (!process.env.PINECONE_API_KEY) {
-      return res.status(500).json({ error: 'Pinecone API 키가 설정되지 않았습니다' });
-    }
-
     // 언어 설정 가져오기
     const prompts = systemPrompts[language] || systemPrompts['en'];
 
-
-
-    // 프롬프트가 이미 확인되었는지 체크 (추가)
-    if (confirmPrompt && originalMessage) {
-      console.log('확인된 프롬프트로 진행:', message);
-      
-      // 2. 임베딩 생성 (확인된 프롬프트 사용)
-      const embeddingResponse = await openai.embeddings.create({
-        model: OpenAI_API_Embedding_Model,
-        input: message, // 확인된 enhancedPrompt 사용
-      });
-      
-      const embedding = embeddingResponse.data[0].embedding;
-
-      // 3. Pinecone에서 관련 컨텍스트 검색 (기존 코드와 동일)
-      const queryResponse = await pineconeIndex.query({
-        vector: embedding,
-        topK: 5,
-        includeMetadata: true,
-        filter: userType === 'customer' ? { access: 'public' } : {}
-      });
-
-      // 컨텍스트 추출 (기존 코드와 동일)
-      let context = '';
-      if (queryResponse.matches && queryResponse.matches.length > 0) {
-        context = queryResponse.matches
-          .map(match => match.metadata.text)
-          .join('\n\n');
-      }
-
-      // 4. 최종 응답 생성 (기존 코드와 동일하지만 원본 메시지 사용)
-      const completion = await openai.chat.completions.create({
-        model: OpenAI_API_Chat_Model,
-        messages: [
-          { role: 'system', content: `${prompts.responseGenerator}\n\n컨텍스트:\n${context || '관련 정보가 없습니다만, 일반적인 지식을 바탕으로 답변하겠습니다.'}` },
-          { role: 'user', content: originalMessage } // 원래 사용자 질문 사용
-        ],
-        temperature: 0.3,
-        max_tokens: 500,
-      });
-
-      const botResponse = completion.choices[0].message.content;
-      
-      // 응답 반환
-      res.json({ 
-        response: botResponse,
-        confirmed: true
-      });
-      return;
-    }
-
-
-
-    // 1. 첫 번째 OpenAI 호출: 질문 프롬프트 개선 (최신 API 방식으로 변경)
+    // OpenAI 호출: 질문 프롬프트 개선
     const promptEnhancerResponse = await openai.chat.completions.create({
       model: OpenAI_API_Chat_Model,
       messages: [
@@ -362,22 +305,57 @@ app.post('/api/chat', validateUser, async (req, res) => {
     });
 
     const enhancedPrompt = promptEnhancerResponse.choices[0].message.content;
-    console.log('개선된 프롬프트:', enhancedPrompt);
+    
+    // 개선된 프롬프트 반환
+    res.json({
+      enhancedPrompt: enhancedPrompt,
+      originalMessage: message
+    });
+    
+  } catch (error) {
+    console.error('프롬프트 개선 오류:', error);
+    
+    const language = req.body.language || 'ko';
+    const errorMessage = getErrorMessageByLanguage(language);
+    
+    res.status(500).json({ 
+      error: errorMessage, 
+      details: error.message 
+    });
+  }
+});
 
-    // 2. 임베딩 생성 (개선된 프롬프트 사용) (최신 API 방식으로 변경)
+// 2. 응답 생성 API
+app.post('/api/chat', validateUser, async (req, res) => {
+  try {
+    const { message, originalMessage, userType, language = 'ko', questionType = '', equipmentType = '', customerName = '' } = req.body;
+    
+    if (!message || !originalMessage) {
+      return res.status(400).json({ error: '메시지 정보가 누락되었습니다' });
+    }
+
+    // API 키 확인
+    if (!process.env.OPENAI_API_KEY || !process.env.PINECONE_API_KEY) {
+      return res.status(500).json({ error: 'API 키가 설정되지 않았습니다' });
+    }
+
+    // 언어 설정 가져오기
+    const prompts = systemPrompts[language] || systemPrompts['en'];
+
+    // 임베딩 생성
     const embeddingResponse = await openai.embeddings.create({
       model: OpenAI_API_Embedding_Model,
-      input: enhancedPrompt,
+      input: message,
     });
     
     const embedding = embeddingResponse.data[0].embedding;
 
-    // 3. Pinecone에서 관련 컨텍스트 검색
+    // Pinecone에서 관련 컨텍스트 검색
     const queryResponse = await pineconeIndex.query({
       vector: embedding,
       topK: 5,
       includeMetadata: true,
-      filter: userType === 'customer' ? { access: 'public' } : {} // 고객은 public 문서만 볼 수 있음
+      filter: userType === 'customer' ? { access: 'public' } : {}
     });
 
     // 컨텍스트 추출
@@ -388,12 +366,12 @@ app.post('/api/chat', validateUser, async (req, res) => {
         .join('\n\n');
     }
 
-    // 4. 두 번째 OpenAI 호출: 최종 응답 생성 (최신 API 방식으로 변경)
+    // 최종 응답 생성
     const completion = await openai.chat.completions.create({
       model: OpenAI_API_Chat_Model,
       messages: [
         { role: 'system', content: `${prompts.responseGenerator}\n\n컨텍스트:\n${context || '관련 정보가 없습니다만, 일반적인 지식을 바탕으로 답변하겠습니다.'}` },
-        { role: 'user', content: message } // 원래 사용자 질문 사용
+        { role: 'user', content: originalMessage }
       ],
       temperature: 0.3,
       max_tokens: 500,
@@ -403,38 +381,12 @@ app.post('/api/chat', validateUser, async (req, res) => {
     
     // 응답 반환
     res.json({ response: botResponse });
-
-  } catch (error) {
-    console.error('오류 발생:', error);
     
-    // 오류 메시지 다국어 지원
-    const errorMessages = {
-      'ko': '서버 오류가 발생했습니다',
-      'en': 'A server error occurred',
-      'ja': 'サーバーエラーが発生しました',
-      'zh': '发生服务器错误'
-    };
+  } catch (error) {
+    console.error('응답 생성 오류:', error);
     
     const language = req.body.language || 'ko';
-    const errorMessage = errorMessages[language] || errorMessages['en'];
-    
-    // OpenAI API 오류 처리
-    if (error.response && error.response.status) {
-      console.error('OpenAI API 오류:', error.response.status, error.response.data);
-      return res.status(error.response.status).json({
-        error: 'OpenAI API 오류',
-        details: error.response.data
-      });
-    }
-    
-    // Pinecone API 오류 처리
-    if (error.name === 'PineconeError') {
-      console.error('Pinecone API 오류:', error.message);
-      return res.status(500).json({
-        error: 'Pinecone API 오류',
-        details: error.message
-      });
-    }
+    const errorMessage = getErrorMessageByLanguage(language);
     
     res.status(500).json({ 
       error: errorMessage, 
@@ -442,6 +394,18 @@ app.post('/api/chat', validateUser, async (req, res) => {
     });
   }
 });
+
+// 오류 메시지 반환 함수
+function getErrorMessageByLanguage(language) {
+  const errorMessages = {
+    'ko': '서버 오류가 발생했습니다',
+    'en': 'A server error occurred',
+    'ja': 'サーバーエラーが発生しました',
+    'zh': '发生服务器错误'
+  };
+  
+  return errorMessages[language] || errorMessages['en'];
+}
 
 // 예기치 않은 오류 처리
 process.on('uncaughtException', (error) => {
