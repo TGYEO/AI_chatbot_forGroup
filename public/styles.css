@@ -99,6 +99,11 @@ body {
     font-size: 0.95rem;
     line-height: 1.6;
     color: #333;
+    height: 100px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    overflow-y: auto; /* 세로 방향 스크롤바 추가 */
 }
 
 .prompt-confirmation-text {

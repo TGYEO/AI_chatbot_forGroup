@@ -376,6 +376,11 @@ async function handleUserMessage() {
     // 현재 언어 설정 가져오기
     const currentLang = localStorage.getItem('preferredLanguage') || 'ko';
 
+    // 필터 값 가져오기
+    const questionType = document.getElementById('QuestionType')?.value || '';
+    const equipmentType = document.getElementById('equipmentType')?.value || '';
+    const customerName = document.getElementById('customerName')?.value || '';
+
     try {
         // 백엔드 서버에 프롬프트 개선 요청
         const response = await fetch(isGitHubPages 
@@ -388,7 +393,10 @@ async function handleUserMessage() {
             body: JSON.stringify({ 
                 message,
                 userType: userData.userType,
-                language: currentLang
+                language: currentLang,
+                questionType: questionType,
+                equipmentType: equipmentType,
+                customerName: customerName
             })
         });
 
@@ -431,9 +439,9 @@ async function proceedWithConfirmedPrompt() {
     chatProcessing = true;
     
     // 프롬프트 확인 UI 숨기기
-    if (promptCheckContainer) {
-        promptCheckContainer.style.display = 'none';
-    }
+    //if (promptCheckContainer) {
+    //    promptCheckContainer.style.display = 'none';
+    //}
     
     // 로딩 표시 추가
     const loadingIndicator = addLoadingIndicator();
@@ -527,10 +535,10 @@ async function proceedWithConfirmedPrompt() {
     console.log('[DEBUG] chatProcessing 상태:', chatProcessing);
     
     // 프롬프트 확인 UI 숨기기
-    if (promptCheckContainer) {
-        promptCheckContainer.style.display = 'none';
-        console.log('[DEBUG] 프롬프트 확인 UI 숨김 처리 완료');
-    }
+    //if (promptCheckContainer) {
+    //    promptCheckContainer.style.display = 'none';
+    //    console.log('[DEBUG] 프롬프트 확인 UI 숨김 처리 완료');
+    //}
     
     // 로딩 표시 추가
     const loadingIndicator = addLoadingIndicator();
